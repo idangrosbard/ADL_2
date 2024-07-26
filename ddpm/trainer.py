@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 class Trainer(object):
-    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, device: torch.device, summary_writer: SummaryWriter):
+    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, sampler: nn.Module, sampling_frequency: int, device: torch.device, summary_writer: SummaryWriter):
         self.model = model
         self.model.to(device)
         self.optimizer = optimizer
@@ -18,11 +18,13 @@ class Trainer(object):
         self.device = device
         self.summary_writer = summary_writer
         self.total_steps = 0
+        self.sampler = sampler
+        self.sample.to(device)
+        self.sampling_freq = sampling_frequency
 
 
     def batch(self, x_0: Tensor, t: LongTensor, train: bool = True) -> float:
         self.optimizer.zero_grad()
-
         x_0 = x_0.to(self.device)
         t = t.to(self.device)
         x_t, epsilon = self.diffusion_process.sample(x_0, t)
@@ -44,8 +46,16 @@ class Trainer(object):
             b_loss = self.batch(x_0, t, train)
             pbar.set_description(f'{"train" if train else "eval"} loss: {b_loss:.4f}')
             self.summary_writer.add_scalar(f'{"train" if train else "eval"}/batch_loss', b_loss, self.total_steps)
+            if (self.total_steps % self.sampling_freq) == 0:
+                with torch.no_grad():
+                    self.sampler.eval()
+                    sample = self.sampler(1)
+                    self.summary_writer.add_image('sampled image', sample, self.total_steps)
+                    self.sampler.train()
+
             self.total_steps += 1
             loss += b_loss / len(data_loader)
+
         return loss
     
 
