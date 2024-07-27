@@ -33,7 +33,7 @@ def main(args: Namespace) -> None:
 
     # Get model
     if args.model == 'ddpm':
-        assert (torch.log(args.input_dim) // args.model_depth) >= 1, 'Cannot perform more downsampling than input size allows, input_dim={args.input_dim}, model_depth={args.model_depth}'
+        assert ((torch.log(args.input_dim) / torch.log(2)) // args.model_depth) >= 1, f'Cannot perform more downsampling than input size allows, input_dim={args.input_dim}, model_depth={args.model_depth}'
         
         unet_backbone = get_unet(args.model_depth)
 
