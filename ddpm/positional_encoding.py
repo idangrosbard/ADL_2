@@ -18,8 +18,6 @@ class PositionalEncoding(nn.Module):
     
     def forward(self, x: Tensor, t: int) -> Tensor:
         pe = self.pe[:, t]
-        pe.reshape(-1, 1, self.d_model, self.d_model)
-        print(pe.shape)
-        print(x.shape)
+        pe = pe.reshape(-1, 1, self.d_model, self.d_model)
         return x + pe
 
