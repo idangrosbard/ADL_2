@@ -45,7 +45,7 @@ def main(args: Namespace) -> None:
         
         betas = diffusion_process.get_betas(args.T)
         sigmas = diffusion_process.get_sigmas(args.T, betas)
-        diffusion_process = DiffusionProcess(betas, args.input_dim)
+        dp = diffusion_process.DiffusionProcess(betas, args.input_dim)
         
         # Get sampler
         if args.sampler == 'standard':
@@ -54,7 +54,7 @@ def main(args: Namespace) -> None:
             raise NotImplementedError(f'Sampler {args.sampler} not implemented')
 
         # Get trainer
-        trainer = Trainer(model, optimizer, scheduler, diffusion_process, sampler, args.sampling_freq, torch.device(args.device), summary_writer)
+        trainer = Trainer(model, optimizer, scheduler, dp, sampler, args.sampling_freq, torch.device(args.device), summary_writer)
 
         # Train
         trainer.train(train_dl, val_dl, args.epochs, args.sampling_freq)
