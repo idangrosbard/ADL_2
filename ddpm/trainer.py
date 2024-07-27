@@ -20,7 +20,7 @@ class Trainer(object):
         self.summary_writer = summary_writer
         self.total_steps = 0
         self.sampler = sampler
-        self.sample.to(device)
+        self.sampler.to(device)
         self.sampling_freq = sampling_frequency
         self.image_denormalize = image_denormalize
 
