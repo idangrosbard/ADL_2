@@ -16,13 +16,12 @@ class DiffusionProcess(nn.Module):
 
         # From equations 9-10
         self.noise_distribution = torch.distributions.MultivariateNormal(torch.zeros(dim ** 2), torch.eye(dim ** 2))
-        
 
     def sample(self, x_0: Tensor, t: LongTensor) -> Tuple[Tensor, Tensor]:
         # x_0 of shape (batch_size, dim, dim)
         # t of shape (batch_size,)
         # implement the diffusion process according to equations 11-12
-        epsilon = self.noise_distribution.sample((x_0.shape[0],)).reshape(x_0.shape)
+        epsilon = self.noise_distribution.sample((x_0.shape[0],)).reshape(x_0.shape).to(x_0.device)
         
         scaled_x_0 = x_0 * self.alpha_bar_t[t].sqrt().unsqueeze(-1).unsqueeze(-1)
         added_noise = epsilon * (1 - self.alpha_bar_t[t]).sqrt().unsqueeze(-1).unsqueeze(-1)
