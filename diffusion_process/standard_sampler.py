@@ -21,8 +21,8 @@ class StandardSampler(nn.Module):
     def get_z(self, t: int, b_size: int) -> Tensor:
         z = torch.zeros(b_size, 1, self.shape, self.shape)
         if t > 0:
-            z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas_t_bar.device)
-        return z
+            z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
+        return z.to(self.alphas_t_bar.device)
     
     def denoise_step(self, t: int, x: Tensor, z: Tensor) -> Tensor:
         epsilon = self.denoiser(x, t)
