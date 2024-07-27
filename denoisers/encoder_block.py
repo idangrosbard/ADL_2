@@ -9,8 +9,8 @@ class EncoderBlock(nn.Module):
                   nn.Conv2d(out_channels, out_channels, 3, 1, 1),
                   nn.ReLU(),
                   nn.Dropout(dropout)]
-        if downsample:
-            layers.append(nn.MaxPool2d(2))
+        # if downsample:
+        #     layers.append(nn.MaxPool2d(2))
         self.layers = nn.Sequential(*layers)
 
 
