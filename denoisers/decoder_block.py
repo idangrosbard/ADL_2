@@ -6,12 +6,13 @@ class DecoderBlock(nn.Module):
         super(DecoderBlock, self).__init__()
 
         # self.upsample = nn.ConvTranspose2d(in_channels, in_channels // 2, 3, stride=2, padding=1)
-        self.upsample = nn.Sequential(nn.Upsample(scale_factor=2, mode='bilinear'), nn.Conv2d(in_channels, in_channels // 2, 3, 1, 1))
+        self.upsample = nn.Sequential(nn.Upsample(scale_factor=2, mode='bilinear'), 
+                                      nn.Conv2d(in_channels, in_channels // 2, 3, 1, 1))
 
         layers = [nn.Conv2d(in_channels, out_channels, 3, 1, 1),
                   nn.BatchNorm2d(out_channels),
                   nn.ReLU(),
-                  nn.Conv2d(in_channels, out_channels, 3, 1, 1),
+                  nn.Conv2d(out_channels, out_channels, 3, 1, 1),
                   nn.ReLU(),
                   nn.Dropout(dropout)]
         

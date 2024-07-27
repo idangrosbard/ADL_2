@@ -15,7 +15,7 @@ def get_unet(depth: int, n_channels: int = 1) -> UNet:
         encoder_blocks.append(EncoderBlock(in_channels, in_channels * 2, downsample=True))
         in_channels *= 2
 
-    for i in range(depth - 2):
+    for i in range(depth - 1):
         decoder_blocks.append(DecoderBlock(in_channels, in_channels // 2))
         in_channels //= 2
     
