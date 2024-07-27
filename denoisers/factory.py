@@ -4,7 +4,7 @@ from .u_net import UNet
 from torch import nn, Tensor
 
 
-def get_unet(depth: int, n_channels: int = 3) -> UNet:
+def get_unet(depth: int, n_channels: int = 1) -> UNet:
     encoder_blocks = []
     decoder_blocks = []
     

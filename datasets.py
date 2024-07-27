@@ -2,20 +2,26 @@ import torchvision
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from typing import Tuple
-from torch import Tensor
+from torch import Tensor, distributions
 
 
 class DiffusionDataset(Dataset):
-    def __init__(self, data: Dataset, T: int = 200) -> None:
+    def __init__(self, data: Dataset, T: int = 200, t_sampler: distributions.Distribution | str = 'uniform') -> None:
         self.data = data
         self.T = T
+        if t_sampler is 'uniform':
+            t_sampler = distributions.Uniform(1, T)
+        elif t_sampler is 'constant':
+            t_sampler = distributions.Uniform(T - 1, T)
+
+        self.t_sampler = t_sampler
 
     def __len__(self) -> int:
-        return len(self.data) * self.T
+        return len(self.data)
 
-    def __getitem__(self, idx: int) -> Tensor:
-        img = self.data[idx // self.T][0]
-        t = idx % self.T
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
+        img = self.data[idx][0]
+        t = self.t_sampler.sample((1,)).long()
         return img, t
 
 
@@ -32,8 +38,8 @@ def get_dataloaders(batch_size: int = 1, T: int = 200, dim: int = 32) -> Tuple[D
     test_ds = torchvision.datasets.FashionMNIST('/content/fashionMNIST', download=True, train=False, transform=transform)
 
     # Add sampling of time step
-    train_ds = DiffusionDataset(train_ds, T)
-    test_ds = DiffusionDataset(test_ds, T)
+    train_ds = DiffusionDataset(train_ds, T, 'uniform')
+    test_ds = DiffusionDataset(test_ds, T, 'constant')
 
     # Create dataloaders
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4)
