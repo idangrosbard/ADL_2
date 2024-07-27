@@ -54,7 +54,7 @@ class Trainer(object):
                 with torch.no_grad():
                     self.sampler.eval()
                     sample = self.sampler(1)
-                    self.summary_writer.add_image('sampled image', self.image_denormalize(sample), self.total_steps)
+                    self.summary_writer.add_image('sampled image', self.image_denormalize(sample)[0], self.total_steps)
                     self.sampler.train()
 
             self.total_steps += 1
