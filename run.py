@@ -37,7 +37,7 @@ def main(args: Namespace) -> None:
         
         unet_backbone = get_unet(args.model_depth)
 
-        model = ddpm.DDPMModel(unet_backbone, ddpm.PositionalEncoding(args.input_dim ** 2, args.T))
+        model = ddpm.DDPMModel(unet_backbone, ddpm.PositionalEncoding(args.input_dim, args.T))
         optimizer = AdamW(model.parameters(), lr=args.lr)
         scheduler = OneCycleLR(optimizer, max_lr=args.lr, total_steps=args.epochs * len(train_dl))
         summary_writer = SummaryWriter()
