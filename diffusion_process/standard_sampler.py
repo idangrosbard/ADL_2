@@ -19,9 +19,9 @@ class StandardSampler(nn.Module):
         self.register_buffer('shape', torch.tensor(shape))
     
     def get_z(self, t: int, b_size: int) -> Tensor:
-        z = torch.zeros(b_size, self.shape, self.shape)
+        z = torch.zeros(b_size, 1, self.shape, self.shape)
         if t > 0:
-            z = self.sampling_distribution.sample((b_size,)).view(b_size, self.shape, self.shape).to(self.alphas_t_bar.device)
+            z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas_t_bar.device)
         return z
     
     def denoise_step(self, t: int, x: Tensor, z: Tensor) -> Tensor:
@@ -33,7 +33,7 @@ class StandardSampler(nn.Module):
         return x
     
     def forward(self, b_size: int) -> Tensor:
-        x = self.sampling_distribution.sample((b_size,)).view(b_size, self.shape, self.shape).to(self.alphas_t_bar.device)
+        x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas_t_bar.device)
         for t in range(self.T):
             z = self.get_z(t, b_size)
             x = self.denoise_step(t, x, z)
