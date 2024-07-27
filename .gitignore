@@ -1,1 +1,9 @@
 .conda/*
+*/__pycache__/*
+*/.ipynb_checkpoints/*
+*/.pytest_cache/*
+*/.vscode/*
+*.pyc
+*-ubyte*
+*.gz
+runs/*

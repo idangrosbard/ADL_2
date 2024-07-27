@@ -35,8 +35,8 @@ def get_dataloaders(batch_size: int = 1, T: int = 200, dim: int = 32) -> Tuple[D
     ])
 
     # Create datasets
-    train_ds = torchvision.datasets.FashionMNIST('/content/fashionMNIST', download=True, train=True, transform=transform)
-    test_ds = torchvision.datasets.FashionMNIST('/content/fashionMNIST', download=True, train=False, transform=transform)
+    train_ds = torchvision.datasets.FashionMNIST('./fashionMNIST', download=True, train=True, transform=transform)
+    test_ds = torchvision.datasets.FashionMNIST('./fashionMNIST', download=True, train=False, transform=transform)
 
     # Add sampling of time step
     train_ds = DiffusionDataset(train_ds, T, 'uniform')
