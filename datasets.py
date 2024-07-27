@@ -40,7 +40,7 @@ def get_dataloaders(batch_size: int = 1, T: int = 200, dim: int = 32) -> Tuple[D
 
     # Add sampling of time step
     train_ds = DiffusionDataset(train_ds, T, 'uniform')
-    test_ds = DiffusionDataset(test_ds, T, 'constant')
+    test_ds = DiffusionDataset(test_ds, T, 'uniform')
 
     # Create dataloaders
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4)

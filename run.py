@@ -24,6 +24,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--input_dim', type=int, default=32)
     parser.add_argument('--model_depth', type=int, default=5)
     parser.add_argument('--sampler', type=str, choices=['standard', 'DPMSolver++', 'FastDPM', 'DDIM'], default='standard')
+    parser.add_argument('--n_samples', type=str, choices=['standard', 'DPMSolver++', 'FastDPM', 'DDIM'], default='standard')
     return parser.parse_args()
 
 
@@ -57,7 +58,7 @@ def main(args: Namespace) -> None:
         sampler.to(torch.device(args.device))
 
         # Get trainer
-        trainer = Trainer(model, optimizer, scheduler, dp, sampler, args.sampling_freq, torch.device(args.device), summary_writer, denormalize)
+        trainer = Trainer(model, optimizer, scheduler, dp, sampler, args.sampling_freq, torch.device(args.device), summary_writer, denormalize, args.n_samples)
 
         # Train
         trainer.train(train_dl, val_dl, args.epochs, args.sampling_freq)

@@ -9,7 +9,7 @@ from typing import Callable
 
 
 class Trainer(object):
-    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, sampler: nn.Module, sampling_frequency: int, device: torch.device, summary_writer: SummaryWriter, image_denormalize: Callable) -> None:
+    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, sampler: nn.Module, sampling_frequency: int, device: torch.device, summary_writer: SummaryWriter, image_denormalize: Callable, n_samples: int) -> None:
         self.model = model
         self.model.to(device)
         self.optimizer = optimizer
@@ -23,6 +23,7 @@ class Trainer(object):
         self.sampler.to(device)
         self.sampling_freq = sampling_frequency
         self.image_denormalize = image_denormalize
+        self.n_samples = n_samples
 
 
     def batch(self, x_0: Tensor, t: LongTensor, train: bool = True) -> float:
@@ -51,9 +52,10 @@ class Trainer(object):
             if (self.total_steps % self.sampling_freq) == 0:
                 with torch.no_grad():
                     self.sampler.eval()
-                    sample = self.sampler(1)
-                    self.summary_writer.add_image('sampled image', self.image_denormalize(sample)[0], self.total_steps)
-                    self.sampler.train()
+                    sample = self.sampler(self.n_samples)
+                    for i in range(self.n_samples):
+                        self.summary_writer.add_image('sampled image', self.image_denormalize(sample[i]), self.total_steps)
+                        self.sampler.train()
 
             self.total_steps += 1
             loss += b_loss / len(data_loader)
