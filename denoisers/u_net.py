@@ -15,6 +15,7 @@ class UNet(nn.Module):
         for encoder_block in self.encoder_blocks:
             history.append(x)
             x = encoder_block(x)
+            print('encoded', x.shape)
         
         for h in history:
             print(h.shape)
@@ -22,5 +23,6 @@ class UNet(nn.Module):
         for decoder_block in self.decoder_blocks:
             x_encoded = history.pop()
             x = decoder_block(x, x_encoded)
+            print('decoded', x.shape)
 
         return x
