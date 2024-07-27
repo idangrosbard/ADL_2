@@ -30,7 +30,6 @@ class Trainer(object):
         x_0 = x_0.to(self.device)
         t = t.to(self.device)
         x_t, epsilon = self.diffusion_process.sample(x_0, t)
-        print(x_t.device, epsilon.device)
         epsilon_hat = self.model(x_t, t)
         loss = ((epsilon - epsilon_hat) ** 2).mean()
 
@@ -46,7 +45,6 @@ class Trainer(object):
         loss = 0
         pbar = tqdm(data_loader, desc=f'{"train" if train else "eval"} epoch....')
         for x_0, t in pbar:
-            print(x_0.shape, t.shape)
             b_loss = self.batch(x_0, t, train)
             pbar.set_description(f'{"train" if train else "eval"} loss: {b_loss:.4f}')
             self.summary_writer.add_scalar(f'{"train" if train else "eval"}/batch_loss', b_loss, self.total_steps)
