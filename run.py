@@ -23,7 +23,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--model', type=str, choices=['edm', 'ddpm'], default='ddpm')
     parser.add_argument('--input_dim', type=int, default=32)
     parser.add_argument('--model_depth', type=int, default=5)
-    parser.add_argument('--sampler', type=str, options=['standard', 'DPMSolver++', 'FastDPM', 'DDIM'], default=200)
+    parser.add_argument('--sampler', type=str, choices=['standard', 'DPMSolver++', 'FastDPM', 'DDIM'], default='standard')
     return parser.parse_args()
 
 
