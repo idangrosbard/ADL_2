@@ -29,7 +29,7 @@ def parse_args() -> Namespace:
 
 def main(args: Namespace) -> None:
     # Get dataloaders
-    train_dl, val_dl = get_dataloaders(args.batch_size)
+    train_dl, val_dl = get_dataloaders(args.batch_size, args.T, args.input_dim)
 
     # Get model
     if args.model == 'ddpm':
