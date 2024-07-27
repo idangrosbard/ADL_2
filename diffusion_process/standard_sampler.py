@@ -33,7 +33,7 @@ class StandardSampler(nn.Module):
         return x
     
     def forward(self, b_size: int) -> Tensor:
-        x = self.sampling_distribution.sample((b_size,)).view(b_size, self.shape, self.shape)
+        x = self.sampling_distribution.sample((b_size,)).view(b_size, self.shape, self.shape).to(self.alphas_t_bar.device)
         for t in range(self.T):
             z = self.get_z(t, b_size)
             x = self.denoise_step(t, x, z)
