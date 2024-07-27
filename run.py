@@ -38,6 +38,7 @@ def main(args: Namespace) -> None:
         unet_backbone = get_unet(args.model_depth)
 
         model = ddpm.DDPMModel(unet_backbone, ddpm.PositionalEncoding(args.input_dim, args.T))
+        model.to(torch.device(args.device))
         optimizer = AdamW(model.parameters(), lr=args.lr)
         scheduler = OneCycleLR(optimizer, max_lr=args.lr, total_steps=args.epochs * len(train_dl))
         summary_writer = SummaryWriter()
@@ -46,12 +47,14 @@ def main(args: Namespace) -> None:
         betas = diffusion_process.get_betas(args.T)
         sigmas = diffusion_process.get_sigmas(args.T, betas)
         dp = diffusion_process.DiffusionProcess(betas, args.input_dim)
-        
+        dp.to(torch.device(args.device))
+
         # Get sampler
         if args.sampler == 'standard':
             sampler = diffusion_process.StandardSampler(model, args.T, sigmas, betas, args.input_dim)
         else:
             raise NotImplementedError(f'Sampler {args.sampler} not implemented')
+        sampler.to(torch.device(args.device))
 
         # Get trainer
         trainer = Trainer(model, optimizer, scheduler, dp, sampler, args.sampling_freq, torch.device(args.device), summary_writer, denormalize)
