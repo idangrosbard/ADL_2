@@ -30,6 +30,7 @@ class Trainer(object):
         x_0 = x_0.to(self.device)
         t = t.to(self.device)
         x_t, epsilon = self.diffusion_process.sample(x_0, t)
+        print(x_t.device, epsilon.device)
         epsilon_hat = self.model(x_t, t)
         loss = ((epsilon - epsilon_hat) ** 2).mean()
 
