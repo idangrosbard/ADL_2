@@ -15,7 +15,7 @@ class StandardSampler(nn.Module):
         self.register_buffer('sigmas', sigmas)
         self.register_buffer('alphas_t', get_alphas(betas))
         self.register_buffer('alphas_t_bar', get_alphas_bar(self.alphas_t))
-        self.register_buffer('T', T)
+        self.register_buffer('T', torch.tensor(T))
         self.register_buffer('shape', torch.tensor(shape))
     
     def get_z(self, t: int, b_size: int) -> Tensor:

@@ -7,7 +7,7 @@ from .utils import get_alphas_bar, get_alphas
 class DiffusionProcess(nn.Module):
     def __init__(self, betas_t: Tensor, dim: int):
         super(DiffusionProcess, self).__init__()
-        self.register_buffer('input_dim', dim)
+        self.register_buffer('input_dim', torch.tensor(dim))
         self.register_buffer('betas_t', betas_t)
 
         # From the definitions above equation 4
