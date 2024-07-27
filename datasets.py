@@ -3,6 +3,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from typing import Tuple
 from torch import Tensor, distributions
+from PIL import Image
 
 
 class DiffusionDataset(Dataset):
@@ -19,7 +20,7 @@ class DiffusionDataset(Dataset):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[Image.Image, Tensor]:
         img = self.data[idx][0]
         t = self.t_sampler.sample((1,)).long()
         return img, t
