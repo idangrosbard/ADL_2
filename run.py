@@ -60,4 +60,8 @@ def main(args: Namespace) -> None:
         trainer.train(train_dl, val_dl, args.epochs, args.sampling_freq)
     else:
         raise NotImplementedError(f'Model {args.model} not implemented')
-            
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    main(args)
