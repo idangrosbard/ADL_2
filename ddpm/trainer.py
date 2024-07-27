@@ -5,10 +5,11 @@ from torch import nn, Tensor, LongTensor
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from typing import Callable
 
 
 class Trainer(object):
-    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, sampler: nn.Module, sampling_frequency: int, device: torch.device, summary_writer: SummaryWriter):
+    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, sampler: nn.Module, sampling_frequency: int, device: torch.device, summary_writer: SummaryWriter, image_denormalize: Callable) -> None:
         self.model = model
         self.model.to(device)
         self.optimizer = optimizer
@@ -21,6 +22,7 @@ class Trainer(object):
         self.sampler = sampler
         self.sample.to(device)
         self.sampling_freq = sampling_frequency
+        self.image_denormalize = image_denormalize
 
 
     def batch(self, x_0: Tensor, t: LongTensor, train: bool = True) -> float:
@@ -50,7 +52,7 @@ class Trainer(object):
                 with torch.no_grad():
                     self.sampler.eval()
                     sample = self.sampler(1)
-                    self.summary_writer.add_image('sampled image', sample, self.total_steps)
+                    self.summary_writer.add_image('sampled image', self.image_denormalize(sample), self.total_steps)
                     self.sampler.train()
 
             self.total_steps += 1

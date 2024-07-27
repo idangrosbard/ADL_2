@@ -1,6 +1,7 @@
 import torch
 from torch import nn, Tensor, LongTensor
 from typing import Tuple
+from .utils import get_alphas_bar, get_alphas
 
 
 class DiffusionProcess(nn.Module):
@@ -9,8 +10,8 @@ class DiffusionProcess(nn.Module):
         self.register_buffer('betas_t', betas_t)
 
         # From the definitions above equation 4
-        self.register_buffer('alphas_t', 1 - betas_t)
-        self.register_buffer('alpha_bar_t', torch.cumprod(self.alphas_t, dim=0))
+        self.register_buffer('alphas_t', get_alphas(self.betas_t))
+        self.register_buffer('alpha_bar_t', get_alphas_bar(self.alphas_t))
 
         # From equations 9-10
         self.noise_distribution = torch.distributions.MultivariateNormal(torch.zeros(dim ** 2), torch.eye(dim ** 2))

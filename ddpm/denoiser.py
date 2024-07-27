@@ -2,9 +2,9 @@ from torch import nn, Tensor
 
 
 
-class EDMModel(nn.Module):
+class DDPMModel(nn.Module):
     def __init__(self, unet: nn.Module, pe: nn.Module) -> None:
-        super(EDMModel, self).__init__()
+        super(DDPMModel, self).__init__()
         self.unet = unet
         self.pe = pe
 
