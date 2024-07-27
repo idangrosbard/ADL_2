@@ -22,9 +22,12 @@ class DiffusionProcess(nn.Module):
         # x_0 of shape (batch_size, dim, dim)
         # t of shape (batch_size,)
         # implement the diffusion process according to equations 11-12
-        epsilon = self.noise_distribution.sample((x_0.shape[0],)).reshape(x_0.shape[0])
-        print(epsilon.shape, x_0.shape)
+        epsilon = self.noise_distribution.sample((x_0.shape[0],)).reshape(x_0.shape)
+        print(self.alpha_bar_t[t].shape)
         
-        x_t = x_0 * self.alpha_bar_t[t].sqrt() + (epsilon * (1 - self.alpha_bar_t[t]).sqrt())
+        scaled_x_0 = x_0 * self.alpha_bar_t[t].sqrt().unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        added_noise = epsilon * (1 - self.alpha_bar_t[t]).sqrt().unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        
+        x_t = scaled_x_0 + added_noise
         return x_t, epsilon
 

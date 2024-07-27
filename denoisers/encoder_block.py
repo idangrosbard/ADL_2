@@ -6,7 +6,7 @@ class EncoderBlock(nn.Module):
         layers = [nn.Conv2d(in_channels, out_channels, 3, 1, 1),
                   nn.BatchNorm2d(out_channels),
                   nn.ReLU(),
-                  nn.Conv2d(in_channels, out_channels, 3, 1, 1),
+                  nn.Conv2d(out_channels, out_channels, 3, 1, 1),
                   nn.ReLU(),
                   nn.Dropout(dropout)]
         if downsample:
