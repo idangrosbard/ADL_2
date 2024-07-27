@@ -18,5 +18,7 @@ class DecoderBlock(nn.Module):
         self.layers = nn.Sequential(*layers)
     
     def forward(self, x: Tensor, x_encoded: Tensor) -> Tensor:
+        print(x.shape, x_encoded.shape)
         x = self.upsample(x)
+        print(x.shape, x_encoded.shape)
         return self.layers(torch.cat([x_encoded, x], dim=1))
