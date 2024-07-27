@@ -10,9 +10,9 @@ class DiffusionDataset(Dataset):
     def __init__(self, data: Dataset, T: int = 200, t_sampler: distributions.Distribution | str = 'uniform') -> None:
         self.data = data
         self.T = T
-        if t_sampler is 'uniform':
+        if t_sampler == 'uniform':
             t_sampler = distributions.Uniform(1, T)
-        elif t_sampler is 'constant':
+        elif t_sampler == 'constant':
             t_sampler = distributions.Uniform(T - 1, T)
 
         self.t_sampler = t_sampler

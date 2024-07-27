@@ -16,7 +16,8 @@ class UNet(nn.Module):
             history.append(x)
             x = encoder_block(x)
         
-        for x_encoded, decoder_block in zip(history, self.decoder_blocks):
+        for decoder_block in self.decoder_blocks:
+            x_encoded = history.pop()
             x = decoder_block(x, x_encoded)
 
         return x
