@@ -7,7 +7,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import ddpm
 from denoisers import get_unet
-from datasets import get_dataloaders
+from datasets import get_dataloaders, denormalize
 
 
 def parse_args() -> Namespace:
@@ -54,7 +54,7 @@ def main(args: Namespace) -> None:
             raise NotImplementedError(f'Sampler {args.sampler} not implemented')
 
         # Get trainer
-        trainer = Trainer(model, optimizer, scheduler, dp, sampler, args.sampling_freq, torch.device(args.device), summary_writer)
+        trainer = Trainer(model, optimizer, scheduler, dp, sampler, args.sampling_freq, torch.device(args.device), summary_writer, denormalize)
 
         # Train
         trainer.train(train_dl, val_dl, args.epochs, args.sampling_freq)
