@@ -24,18 +24,30 @@ class StandardSampler(nn.Module):
             z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
         return z.to(self.alphas_t_bar.device)
     
-    def denoise_step(self, t: int, x: Tensor, z: Tensor) -> Tensor:
+    def denoise_step(self, t: Tensor, x: Tensor, z: Tensor) -> Tensor:
         epsilon = self.denoiser(x, t)
         epsilon_scale = (1 - self.alphas_t[t]) / (1 - self.alphas_t_bar[t]).sqrt()
+        epsilon_scale.unsqueeze(-1).repeat(1,1,1)
+
+        for s in x.shape[1:]:
+            epsilon_scale = epsilon_scale.unsqueeze(-1).repeat_interleave(s, -1)
+
         delta = x - epsilon_scale * epsilon
         delta_scale = 1 / self.alphas_t[t].sqrt()
-        x = delta_scale * delta + self.sigmas[t] * z
+        sigmas = self.sigmas[t]
+
+        for s in x.shape[1:]:
+            delta_scale = delta_scale.unsqueeze(-1).repeat_interleave(s, -1)
+            sigmas = sigmas.unsqueeze(-1).repeat_interleave(s, -1)
+
+        x = delta_scale * delta +  sigmas * z
         return x
     
     def forward(self, b_size: int) -> Tensor:
         x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas_t_bar.device)
         for t in range(self.T):
+            t_batch = torch.tensor([t for _ in range(b_size)], device=x.device)
             z = self.get_z(t, b_size)
-            x = self.denoise_step(t, x, z)
+            x = self.denoise_step(t_batch, x, z)
         return x
         
