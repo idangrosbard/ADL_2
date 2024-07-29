@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import OneCycleLR
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import ddpm
-from denoisers import get_unet
+from denoiser_backbones import get_unet
 from datasets import get_dataloaders, denormalize
 
 

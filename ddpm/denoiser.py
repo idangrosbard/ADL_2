@@ -9,6 +9,6 @@ class DDPMModel(nn.Module):
         self.pe = pe
 
     def forward(self, x: Tensor, t: Tensor) -> Tensor:
-        x = self.pe(x, t)
-        x = self.unet(x)
-        return x
+        x_t_emb = self.pe(x, t)
+        sigma_hat = self.unet(x_t_emb)
+        return sigma_hat
