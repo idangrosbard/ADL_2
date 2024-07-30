@@ -51,14 +51,21 @@ def main(args: Namespace) -> None:
         dp.to(torch.device(args.device))
 
         # Get sampler
-        if args.sampler == 'standard':
-            sampler = diffusion_process.StandardSampler(model, args.T, sigmas, betas, args.input_dim)
-        else:
-            raise NotImplementedError(f'Sampler {args.sampler} not implemented')
-        sampler.to(torch.device(args.device))
-
+        samplers_names = ['standard', 'FastDPM']
+        samplers = []
+        for name in samplers_names:
+            if name == 'standard':
+                sampler = diffusion_process.StandardSampler(model, args.T, sigmas, betas, args.input_dim)
+            elif name == 'FastDPM':
+                sampler = diffusion_process.FastDPM(model, args.T, sigmas, betas, args.input_dim)
+            else:
+                raise NotImplementedError(f'Sampler {name} not implemented')
+            
+            sampler.to(torch.device(args.device))
+            samplers.append(sampler)
+        
         # Get trainer
-        trainer = Trainer(model, optimizer, scheduler, dp, sampler, args.sampling_freq, torch.device(args.device), summary_writer, denormalize, args.n_samples)
+        trainer = Trainer(model, optimizer, scheduler, dp, samplers, args.sampling_freq, torch.device(args.device), summary_writer, denormalize, args.n_samples)
 
         # Train
         trainer.train(train_dl, val_dl, args.epochs, args.sampling_freq)
