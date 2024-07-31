@@ -21,7 +21,6 @@ class UNet(nn.Module):
         
         x = self.bridge(x)
 
-        
         for decoder_block in self.decoder_blocks:
             x_encoded = history.pop()
             x = decoder_block(x, x_encoded)
