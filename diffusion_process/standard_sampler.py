@@ -25,6 +25,7 @@ class StandardSampler(nn.Module):
         return z.to(self.alphas_t_bar.device)
     
     def denoise_step(self, t: Tensor, x: Tensor, z: Tensor) -> Tensor:
+        # Algorithm step taken from "Algorithm 2" in DDPM paper
         epsilon = self.denoiser(x, t)
         epsilon_scale = (1 - self.alphas_t[t]) / (1 - self.alphas_t_bar[t]).sqrt()
         epsilon_scale.unsqueeze(-1).repeat(1,1,1)
@@ -44,8 +45,11 @@ class StandardSampler(nn.Module):
         return x
     
     def forward(self, b_size: int) -> Tensor:
+        # Sample random noise
         x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas_t_bar.device)
-        for t in range(self.T):
+
+        # Iterate for t steps...
+        for t in range(self.T - 1, -1, -1):
             t_batch = torch.tensor([t for _ in range(b_size)], device=x.device)
             z = self.get_z(t, b_size)
             x = self.denoise_step(t_batch, x, z)

@@ -30,7 +30,7 @@ class DiffusionProcess(nn.Module):
 
         # Noise generated at time t
         epsilon_t = self.noise_distribution.sample((x_0.shape[0],)).reshape(x_0.shape).to(x_0.device)
-        noise_t = epsilon_t * self.betas[t].sqrt().unsqueeze(-1).unsqueeze(-1)
+        noise_t = epsilon_t * self.betas_t[t].sqrt().unsqueeze(-1).unsqueeze(-1)
         
         x_t = scaled_x_0 + noise_0_to_t + noise_t
         return x_t, noise_t

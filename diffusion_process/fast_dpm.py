@@ -59,7 +59,8 @@ class FastDPM(nn.Module):
         self.register_buffer('gamma_bar', self.gamma.cumprod(dim=0))
         
         eta_tilde = self.eta * (1 - self.gamma_bar[:-1]) / (1 - self.gamma_bar[1:])
-        eta_tilde = torch.cat([self.eta[0] * eta_tilde[-1], eta_tilde])
+        eta_tilde0 = (self.eta[0] * eta_tilde[-1]).unsqueeze(0)
+        eta_tilde = torch.cat([eta_tilde0, eta_tilde])
         self.register_buffer('eta_tilde', eta_tilde)
 
         self.denoiser = denoiser
