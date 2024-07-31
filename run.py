@@ -57,7 +57,8 @@ def main(args: Namespace) -> None:
             if name == 'standard':
                 sampler = diffusion_process.StandardSampler(model, args.T, sigmas, betas, args.input_dim)
             elif name == 'FastDPM':
-                sampler = diffusion_process.FastDPM(model, args.T, sigmas, betas, args.input_dim)
+                pass
+                # sampler = diffusion_process.FastDPM(model, args.T, sigmas, betas, args.input_dim, tau = torch.Tensor(list(range(args.T, 0, -50))))
             else:
                 raise NotImplementedError(f'Sampler {name} not implemented')
             
