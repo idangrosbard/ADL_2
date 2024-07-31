@@ -9,7 +9,7 @@ from typing import Callable, List
 
 
 class Trainer(object):
-    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, samplers: nn.ModuleList[nn.Module] | List[nn.Module], sampling_frequency: int, device: torch.device, summary_writer: SummaryWriter, image_denormalize: Callable, n_samples: int) -> None:
+    def __init__(self, model: nn.Module, optimizer: Optimizer, scheduler: LRScheduler, diffusion_process: nn.Module, samplers: nn.ModuleList | List[nn.Module], sampling_frequency: int, device: torch.device, summary_writer: SummaryWriter, image_denormalize: Callable, n_samples: int) -> None:
         self.model = model
         self.model.to(device)
         self.optimizer = optimizer
