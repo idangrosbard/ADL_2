@@ -73,7 +73,7 @@ class FastDPM(nn.Module):
         z = torch.zeros(b_size, 1, self.shape, self.shape)
         if t > 0:
             z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
-        return z.to(self.alphas_t_bar.device)
+        return z.to(self.gamma_bar.device)
     
     def denoise_step(self, s: int, x_s: Tensor, eps: Tensor) -> Tensor:
         epsilon_hat = self.denoiser(x_s, s)
@@ -84,7 +84,7 @@ class FastDPM(nn.Module):
         return x_s_1
     
     def forward(self, b_size: int) -> Tensor:
-        x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas_t_bar.device)
+        x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.gamma_bar.device)
         for t in self.tau:
             z = self.get_z(t, b_size)
             x = self.denoise_step(t, x, z)
