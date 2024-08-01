@@ -78,8 +78,16 @@ class FastDPM(nn.Module):
     def denoise_step(self, s: Tensor, x_s: Tensor, eps: Tensor) -> Tensor:
         epsilon_hat = self.denoiser(x_s, s)
         epsilon_scale = self.eta[s] / (1 - self.gamma_bar[s]).sqrt()
-        noise_scale = self.eta_tilde[s].sqrt()
-        overall_scale = 1 / self.gamma[s].sqrt()
+
+        for s in x_s.shape[1:]:
+            epsilon_scale = epsilon_scale.unsqueeze(-1).repeat_interleave(s, -1)
+
+        noise_scale = self.eta_tilde[s].sqrt().unsqueeze(-1).repeat_interleave(s, -1)
+        overall_scale = 1 / self.gamma[s].sqrt().unsqueeze(-1).repeat_interleave(s, -1)
+        for s in x_s.shape[1:]:
+            noise_scale = noise_scale.unsqueeze(-1).repeat_interleave(s, -1)
+            overall_scale = overall_scale.unsqueeze(-1).repeat_interleave(s, -1)
+        
         x_s_1 = overall_scale * (x_s - epsilon_scale * epsilon_hat) + noise_scale * eps
         return x_s_1
     
