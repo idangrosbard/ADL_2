@@ -47,6 +47,8 @@ def main(args: Namespace) -> None:
         
         betas = diffusion_process.get_betas(args.T)
         sigmas = diffusion_process.get_sigmas(args.T, betas)
+        alphas = diffusion_process.get_alphas(betas)
+        alpha_bar = diffusion_process.get_alphas_bar(alphas)
         dp = diffusion_process.DiffusionProcess(betas, args.input_dim)
         dp.to(torch.device(args.device))
 
@@ -55,12 +57,13 @@ def main(args: Namespace) -> None:
         samplers = []
         for name in samplers_names:
             if name == 'standard':
-                continue
                 sampler = diffusion_process.StandardSampler(model, args.T, betas, args.input_dim)
             elif name == 'FastDPM':
                 tau = torch.Tensor(list(range(args.T  - 1 - 50, -1, -50)))
                 tau = tau.long()
-                sampler = diffusion_process.FastDPM(model, args.T, sigmas, betas, args.input_dim, tau = tau)
+                delta_beta = betas[1] - betas[0]
+                beta_0 = betas[0]
+                sampler = diffusion_process.FastDPM(denoiser=model, shape=args.input_dim, alpha_bar=alpha_bar, delta_beta=delta_beta, beta_0=beta_0, tau = tau)
             elif name == 'DDIM':
                 tau = torch.Tensor(list(range(args.T  - 1 - 50, -1, -50)))
                 tau = tau.long()
