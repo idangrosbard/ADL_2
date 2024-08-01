@@ -51,16 +51,21 @@ def main(args: Namespace) -> None:
         dp.to(torch.device(args.device))
 
         # Get sampler
-        samplers_names = ['standard', 'FastDPM']
+        samplers_names = ['standard', 'FastDPM', 'DDIM']
         samplers = []
         for name in samplers_names:
             if name == 'standard':
-                sampler = diffusion_process.StandardSampler(model, args.T, sigmas, betas, args.input_dim)
-            elif name == 'FastDPM':
                 continue
-                tau = torch.Tensor(list(range(args.T - 50, 0, -50)))
+                sampler = diffusion_process.StandardSampler(model, args.T, betas, args.input_dim)
+            elif name == 'FastDPM':
+                tau = torch.Tensor(list(range(args.T  - 1 - 50, -1, -50)))
                 tau = tau.long()
                 sampler = diffusion_process.FastDPM(model, args.T, sigmas, betas, args.input_dim, tau = tau)
+            elif name == 'DDIM':
+                tau = torch.Tensor(list(range(args.T  - 1 - 50, -1, -50)))
+                tau = tau.long()
+                alphas = diffusion_process.get_alphas(betas)
+                sampler = diffusion_process.DDIMSampler(model, alphas, tau, etas = torch.ones(args.T - 1))
             else:
                 raise NotImplementedError(f'Sampler {name} not implemented')
             

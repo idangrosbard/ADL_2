@@ -52,7 +52,7 @@ class FastDPM(nn.Module):
 
         else:
             raise ValueError('Expected exactly one of ETA and TAU to be none, not both, not neither')
-
+        
         self.register_buffer('tau', tau)
         self.register_buffer('eta', eta)
         self.register_buffer('gamma', 1 - self.eta)

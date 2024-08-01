@@ -1,18 +1,17 @@
 from torch import nn, Tensor, LongTensor
 import torch
 from typing import Tuple
-from .utils import get_alphas_bar, get_alphas
+from .utils import get_alphas_bar, get_alphas, get_sigmas
 
 
 class StandardSampler(nn.Module):
-    def __init__(self, denoiser: nn.Module, T: int, sigmas: Tensor, betas: Tensor, shape: int):
+    def __init__(self, denoiser: nn.Module, T: int, betas: Tensor, shape: int, deterministic: bool = False):
         super(StandardSampler, self).__init__()
-        assert sigmas.shape == (T,)
         assert betas.shape == (T,)
 
         self.denoiser = denoiser
         self.sampling_distribution = torch.distributions.MultivariateNormal(torch.zeros(shape ** 2), torch.eye(shape ** 2))
-        self.register_buffer('sigmas', sigmas)
+        self.register_buffer('sigmas', get_sigmas(T, betas, x_0_fixed=deterministic))
         self.register_buffer('alphas_t', get_alphas(betas))
         self.register_buffer('alphas_t_bar', get_alphas_bar(self.alphas_t))
         self.register_buffer('T', torch.tensor(T))
