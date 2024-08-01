@@ -63,6 +63,7 @@ class FastDPM(nn.Module):
         eta_tilde0 = (self.eta[0] * eta_tilde[-1]).unsqueeze(0)
         eta_tilde = torch.cat([eta_tilde0, eta_tilde])
         self.register_buffer('eta_tilde', eta_tilde)
+        self.shape = shape
 
         self.denoiser = denoiser
         self.sampling_distribution = torch.distributions.MultivariateNormal(torch.zeros(shape ** 2), torch.eye(shape ** 2))
