@@ -49,7 +49,7 @@ class FastDPM(nn.Module):
             
         elif (tau is not None) and (eta is None):
             alpha_bar_s = alpha_bar[tau]
-            eta = 1 - (alpha_bar_s / torch.cat([torch.tensor([1]), alpha_bar_s[:-1]]))
+            eta = 1 - (torch.cat([torch.tensor([1]), alpha_bar_s[1:]]) / alpha_bar_s)
 
         else:
             raise ValueError('Expected exactly one of ETA and TAU to be none, not both, not neither')
@@ -59,7 +59,7 @@ class FastDPM(nn.Module):
         self.register_buffer('gamma', 1 - self.eta)
         self.register_buffer('gamma_bar', self.gamma.cumprod(dim=0))
         
-        eta_tilde = self.eta[1:] * (1 - self.gamma_bar[:-1]) / (1 - self.gamma_bar[1:])
+        eta_tilde = self.eta[1:] * (1 - self.gamma_bar[1:]) / (1 - self.gamma_bar[:-1])
         eta_tilde0 = (self.eta[0] * eta_tilde[-1]).unsqueeze(0)
         eta_tilde = torch.cat([eta_tilde0, eta_tilde])
         self.register_buffer('eta_tilde', eta_tilde)
@@ -75,29 +75,19 @@ class FastDPM(nn.Module):
             z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
         return z.to(self.gamma_bar.device)
     
-    def expand_to_x(self, parameter: Tensor, x: Tensor) -> Tensor:
-        for dim_size in x.shape[1:]:
-            parameter = parameter.unsqueeze(-1).repeat_interleave(dim_size, -1)
-        return parameter
-    
     def denoise_step(self, s: int, t: Tensor, x_s: Tensor, eps: Tensor) -> Tensor:
         epsilon_hat = self.denoiser(x_s, t)
 
-        epsilon_scale = self.eta[s] / (1 - self.gamma_bar[s]).sqrt()
-        noise_scale = self.eta_tilde[s].sqrt()
-        overall_scale = 1 / self.gamma[s].sqrt()
-
-        # Expand the shape of the parameters to match the shape of x_s
-        epsilon_scale = self.expand_to_x(epsilon_scale, x_s)
-        noise_scale = self.expand_to_x(noise_scale, x_s)
-        overall_scale = self.expand_to_x(overall_scale, x_s)
+        epsilon_scale = (self.eta[s] / (1 - self.gamma_bar[s]).sqrt()).item()
+        noise_scale = self.eta_tilde[s].sqrt().item()
+        overall_scale = (1 / self.gamma[s].sqrt()).item()
         
         x_s_1 = overall_scale * (x_s - epsilon_scale * epsilon_hat) + noise_scale * eps
         return x_s_1
     
     def forward(self, b_size: int) -> Tensor:
         x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.gamma_bar.device)
-        for s, t in zip(range(self.tau.shape[0]), self.tau):
+        for s, t in zip(range(self.tau.shape[0]-1, -1, -1), self.tau):
             t_batch = torch.tensor([t for _ in range(b_size)], device=x.device)
             z = self.get_z(t, b_size)
             x = self.denoise_step(s, t_batch, x, z)
