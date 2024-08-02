@@ -68,7 +68,7 @@ def main(args: Namespace) -> None:
                 tau = torch.Tensor(list(range(args.T  - 1 - 50, -1, -50)))
                 tau = tau.long()
                 alphas = diffusion_process.get_alphas(betas)
-                sampler = diffusion_process.DDIMSampler(model, alphas, tau, etas = torch.ones(args.T - 1))
+                sampler = diffusion_process.DDIMSampler(model, alphas, tau, etas = torch.ones(args.T - 1), dim=args.input_dim)
             else:
                 raise NotImplementedError(f'Sampler {name} not implemented')
             
