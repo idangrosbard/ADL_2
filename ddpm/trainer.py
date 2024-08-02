@@ -25,6 +25,7 @@ class Trainer(object):
         self.sampling_freq = sampling_frequency
         self.image_denormalize = image_denormalize
         self.n_samples = n_samples
+        self.loss_fn = nn.MSELoss()
 
 
     def batch(self, x_0: Tensor, t: LongTensor, train: bool = True) -> float:
@@ -33,8 +34,7 @@ class Trainer(object):
         t = t.to(self.device)
         x_t, epsilon = self.diffusion_process.sample(x_0, t)
         epsilon_hat = self.model(x_t, t)
-        loss = ((epsilon - epsilon_hat) ** 2).mean()
-
+        loss = self.loss_fn(epsilon, epsilon_hat)
         if train:
             loss.backward()
             self.optimizer.step()
