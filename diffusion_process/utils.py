@@ -23,7 +23,7 @@ def get_sigmas(T: int, betas: torch.Tensor, x_0_fixed: bool = False) -> torch.Te
         alpha_bar = get_alphas_bar(get_alphas(betas))
         sigmas_square = (1 - alpha_bar[:-1]) / (1 - alpha_bar[1:]) * betas[1:]
         sigmas = sigmas_square.sqrt()
-        sigmas = torch.cat([torch.tensor[0], sigmas])
+        sigmas = torch.cat([torch.tensor([0]), sigmas])
     return sigmas
         
 
