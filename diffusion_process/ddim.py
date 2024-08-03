@@ -26,9 +26,11 @@ class DDIMSampler(nn.Module):
             z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
         return z.to(self.alphas.device)
         
-    def denoise_step(self, i: int, t: int, t_batch: Tensor, x: Tensor, z: Tensor) -> Tensor:
+    def denoise_step(self, s: int, x: Tensor, z: Tensor) -> Tensor:
         # From equation 13:
-        t_1 = self.taus[i + 1].item()
+        t = self.taus[s].item()
+        t_batch = self.taus[s].repeat(x.shape[0])
+        t_1 = self.taus[s - 1].item()
         epsilon = self.denoiser(x, t_batch)
         epsilon_scale = (((1 - self.alphas[t_1]) / (self.alphas[t_1])).sqrt() - ((1 - self.alphas[t]) / (self.alphas[t])).sqrt()).item()
         
@@ -44,9 +46,8 @@ class DDIMSampler(nn.Module):
     
     def forward(self, b_size: int) -> Tensor:
         x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas.device)
-        for i in range(self.taus.shape[0] - 1):
-            z = self.get_z(self.taus[i], b_size)
-            t_batch = self.taus[i].repeat(b_size)
-            x = self.denoise_step(i, self.taus[i].item(), t_batch, x, z)
+        for s in range(self.taus.shape[0] - 1, 0, -1):
+            z = self.get_z(self.taus[s], b_size)
+            x = self.denoise_step(s, x, z)
         return x
         
