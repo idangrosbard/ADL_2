@@ -9,7 +9,7 @@ class DecoderBlock(nn.Module):
         self.upsample = nn.Sequential(nn.Upsample(scale_factor=2, mode='bilinear'), 
                                       nn.Conv2d(in_channels, in_channels // upsample_width_factor, 3, 1, 1))
 
-        layers = [nn.Conv2d(in_channels, out_channels, 3, 1, 1),
+        layers = [nn.Conv2d(2 * in_channels // upsample_width_factor, out_channels, 3, 1, 1),
                   nn.BatchNorm2d(out_channels),
                   nn.ReLU()]
         for _ in range(n_convs):
