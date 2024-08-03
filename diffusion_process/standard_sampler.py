@@ -16,10 +16,11 @@ class StandardSampler(nn.Module):
         self.register_buffer('alphas_t_bar', get_alphas_bar(self.alphas_t))
         self.register_buffer('T', torch.tensor(T))
         self.register_buffer('shape', torch.tensor(shape))
+        self.deterministic = deterministic
     
     def get_z(self, t: int, b_size: int) -> Tensor:
         z = torch.zeros(b_size, 1, self.shape, self.shape)
-        if t > 0:
+        if (t > 0) and (not self.deterministic):
             z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
         return z.to(self.alphas_t_bar.device)
     
@@ -32,7 +33,7 @@ class StandardSampler(nn.Module):
         delta_scale = (1 / self.alphas_t[t].sqrt()).item()
         sigmas = self.sigmas[t].item()
 
-        x = delta_scale * delta +  sigmas * z
+        x = delta_scale * delta + torch.clamp(sigmas * z, -1, 1)
         return x
     
     def forward(self, b_size: int) -> Tensor:

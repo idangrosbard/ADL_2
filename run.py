@@ -25,6 +25,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--model_depth', type=int, default=5)
     parser.add_argument('--sampler', type=str, choices=['standard', 'DPMSolver++', 'FastDPM', 'DDIM'], default='standard')
     parser.add_argument('--n_samples', type=int, default=10)
+    parser.add_argument('--deterministic_sampling', action='store_true')
     return parser.parse_args()
 
 
@@ -46,7 +47,7 @@ def main(args: Namespace) -> None:
 
         
         betas = diffusion_process.get_betas(args.T)
-        sigmas = diffusion_process.get_sigmas(args.T, betas)
+        sigmas = diffusion_process.get_sigmas(args.T, betas, args.deterministic_sampling)
         alphas = diffusion_process.get_alphas(betas)
         alpha_bar = diffusion_process.get_alphas_bar(alphas)
         dp = diffusion_process.DiffusionProcess(betas, args.input_dim)
@@ -57,7 +58,7 @@ def main(args: Namespace) -> None:
         samplers = []
         for name in samplers_names:
             if name == 'standard':
-                sampler = diffusion_process.StandardSampler(model, args.T, betas, args.input_dim)
+                sampler = diffusion_process.StandardSampler(model, args.T, betas, args.input_dim, args.deterministic_sampling)
             elif name == 'FastDPM':
                 tau = torch.Tensor(list(range(args.T  - 1, 0, -50)[::-1]))
                 print(tau)
