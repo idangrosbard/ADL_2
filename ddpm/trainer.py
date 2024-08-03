@@ -50,6 +50,8 @@ class Trainer(object):
             b_loss = self.batch(x_0, t, train)
             pbar.set_description(f'{"train" if train else "eval"} loss: {b_loss:.4f}')
             self.summary_writer.add_scalar(f'{"train" if train else "eval"}/batch_loss', b_loss, self.total_steps)
+            if train:
+                self.summary_writer.add_scalar(f'LR', self.scheduler.get_lr(), self.total_steps)
             if (self.total_steps % self.sampling_freq) == 0:
                 with torch.no_grad():
                     self.samplers.eval()
