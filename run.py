@@ -2,7 +2,7 @@ import diffusion_process
 from ddpm import *
 from argparse import ArgumentParser, Namespace
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import OneCycleLR, StepLR
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import ddpm
@@ -21,6 +21,8 @@ def parse_args() -> Namespace:
     parser.add_argument('--n_convs', type=int, default=1)
     parser.add_argument('--lr', type=float, default=1e-5)
     parser.add_argument('--max_lr', type=float, default=1e-3)
+    parser.add_argument('--step_lr_schedule', action='store_true')
+    parser.add_argument('--n_step_lr', type=int, default=80)
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--sampling_freq', type=int, default=100)
     parser.add_argument('--model', type=str, choices=['edm', 'ddpm'], default='ddpm')
@@ -45,7 +47,10 @@ def main(args: Namespace) -> None:
         model = ddpm.DDPMModel(unet_backbone, ddpm.PositionalEncoding(args.input_dim, args.T))
         model.to(torch.device(args.device))
         optimizer = AdamW(model.parameters(), lr=args.lr)
-        scheduler = OneCycleLR(optimizer, max_lr=args.lr, total_steps=args.epochs * len(train_dl))
+        if args.step_lr_schedule:
+            scheduler = StepLR(optimizer, args.n_step_lr, gamma=0.1)
+        else:
+            scheduler = OneCycleLR(optimizer, max_lr=args.lr, total_steps=args.epochs * len(train_dl))
         summary_writer = SummaryWriter()
 
         
