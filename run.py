@@ -59,14 +59,14 @@ def main(args: Namespace) -> None:
             if name == 'standard':
                 sampler = diffusion_process.StandardSampler(model, args.T, betas, args.input_dim)
             elif name == 'FastDPM':
-                tau = torch.Tensor(list(range(args.T  - 1, 0, -50)))
+                tau = torch.Tensor(list(range(args.T  - 1, 0, -50)[::-1]))
                 print(tau)
                 tau = tau.long()
                 delta_beta = betas[1] - betas[0]
                 beta_0 = betas[0]
                 sampler = diffusion_process.FastDPM(denoiser=model, shape=args.input_dim, alpha_bar=alpha_bar, delta_beta=delta_beta, beta_0=beta_0, tau = tau)
             elif name == 'DDIM':
-                tau = torch.Tensor(list(range(args.T  - 1, 0, -50)))
+                tau = torch.Tensor(list(range(args.T  - 1, 0, -50)[::-1]))
                 print(tau)
                 tau = tau.long()
                 alphas = diffusion_process.get_alphas(betas)

@@ -49,7 +49,8 @@ class FastDPM(nn.Module):
             
         elif (tau is not None) and (eta is None):
             alpha_bar_s = alpha_bar[tau]
-            eta = 1 - (torch.cat([torch.tensor([1]), alpha_bar_s[1:]]) / alpha_bar_s)
+            eta = 1 - (alpha_bar_s / torch.cat([torch.tensor([1]), alpha_bar_s[:-1]]))
+            print(eta)
 
         else:
             raise ValueError('Expected exactly one of ETA and TAU to be none, not both, not neither')
@@ -59,7 +60,7 @@ class FastDPM(nn.Module):
         self.register_buffer('gamma', 1 - self.eta)
         self.register_buffer('gamma_bar', self.gamma.cumprod(dim=0))
         
-        eta_tilde = self.eta[1:] * (1 - self.gamma_bar[1:]) / (1 - self.gamma_bar[:-1])
+        eta_tilde = self.eta[:-1] * (1 - self.gamma_bar[1:]) / (1 - self.gamma_bar[:-1])
         eta_tilde0 = (self.eta[0] * eta_tilde[-1]).unsqueeze(0)
         eta_tilde = torch.cat([eta_tilde0, eta_tilde])
         self.register_buffer('eta_tilde', eta_tilde)
@@ -87,7 +88,7 @@ class FastDPM(nn.Module):
     
     def forward(self, b_size: int) -> Tensor:
         x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.gamma_bar.device)
-        for s, t in zip(range(self.tau.shape[0]-1, -1, -1), self.tau):
+        for s, t in zip(range(self.tau.shape[0] - 1, -1, -1), self.tau):
             t_batch = torch.tensor([t for _ in range(b_size)], device=x.device)
             z = self.get_z(t, b_size)
             x = self.denoise_step(s, t_batch, x, z)
