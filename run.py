@@ -16,6 +16,9 @@ def parse_args() -> Namespace:
     parser.add_argument('--T', type=int, default=200)
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--init_width', type=int, default=64)
+    parser.add_argument('--width_expansion_factor', type=int, default=2)
+    parser.add_argument('--n_convs', type=int, default=1)
     parser.add_argument('--lr', type=float, default=1e-5)
     parser.add_argument('--max_lr', type=float, default=1e-3)
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
@@ -37,7 +40,7 @@ def main(args: Namespace) -> None:
     if args.model == 'ddpm':
         assert ((torch.log(torch.tensor(args.input_dim)) / torch.log(torch.tensor(2))) // args.model_depth) >= 1, f'Cannot perform more downsampling than input size allows, input_dim={args.input_dim}, model_depth={args.model_depth}'
         
-        unet_backbone = get_unet(args.model_depth)
+        unet_backbone = get_unet(args.model_depth, 1, 0.1, args.init_width, args.width_expansion_factor, args.n_convs)
 
         model = ddpm.DDPMModel(unet_backbone, ddpm.PositionalEncoding(args.input_dim, args.T))
         model.to(torch.device(args.device))
