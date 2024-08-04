@@ -7,3 +7,10 @@
 *-ubyte*
 *.gz
 runs/*
+
+data/
+tensorboard/
+checkpoints/
+logs/
+.idea
+debug/

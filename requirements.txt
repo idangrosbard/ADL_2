@@ -1,0 +1,10 @@
+numpy==1.*
+torch
+pandas
+tensorboard
+datasets
+einops
+jupyterlab
+protobuf
+humanize
+torchvision
