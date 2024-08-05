@@ -31,6 +31,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--sampler', type=str, choices=['standard', 'DPMSolver++', 'FastDPM', 'DDIM'], default='standard')
     parser.add_argument('--n_samples', type=int, default=10)
     parser.add_argument('--deterministic_sampling', action='store_true')
+    parser.add_argument('--no_resblock', action='store_false')
     return parser.parse_args()
 
 
@@ -42,7 +43,7 @@ def main(args: Namespace) -> None:
     if args.model == 'ddpm':
         assert ((torch.log(torch.tensor(args.input_dim)) / torch.log(torch.tensor(2))) // args.model_depth) >= 1, f'Cannot perform more downsampling than input size allows, input_dim={args.input_dim}, model_depth={args.model_depth}'
         
-        unet_backbone = get_unet(args.model_depth, 1, 0.1, args.init_width, args.width_expansion_factor, args.n_convs)
+        unet_backbone = get_unet(args.model_depth, 1, 0.1, args.init_width, args.width_expansion_factor, args.n_convs, resblocks=args.no_resblock)
 
         model = ddpm.DDPMModel(unet_backbone, ddpm.PositionalEncoding(args.input_dim, args.T))
         model.to(torch.device(args.device))
