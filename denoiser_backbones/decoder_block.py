@@ -11,7 +11,7 @@ class DecoderBlock(nn.Module):
                                       nn.Conv2d(in_channels, in_channels // upsample_width_factor, 3, 1, 1))
 
         layers = [nn.Conv2d(2 * in_channels // upsample_width_factor, out_channels, 3, 1, 1),
-                  nn.BatchNorm2d(out_channels),
+                  nn.LayerNorm(),
                   nn.ReLU()]
         
         if resblock:
