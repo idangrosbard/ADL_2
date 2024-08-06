@@ -46,8 +46,6 @@ class SamplerConfig(TypedDict):
 
 class TrainingConfig(TypedDict):
     batch_size: int
-    learning_rate: float
-    max_lr: float
     epochs: int
     seed: int
     gradient_clip_value: Optional[float]

@@ -33,10 +33,10 @@ def parse_args() -> Tuple[ITrainArgs, bool, IAddArgs]:
     parser.add_argument('--init_width', type=int)
     parser.add_argument('--width_expansion_factor', type=int)
     parser.add_argument('--n_convs', type=int)
-    parser.add_argument('--resblock', action='store_true')
+    parser.add_argument('--no_resblock', dest='resblock', action='store_false')
     parser.add_argument('--lr', type=float)
     parser.add_argument('--max_lr', type=float)
-    parser.add_argument('--step_lr_schedule', action='store_true')
+    parser.add_argument('--lr_scheduler', type=str, choices=[x.value for x in LR_SCHEDULER])
     parser.add_argument('--n_step_lr', type=int)
     parser.add_argument('--sampling_freq', type=int)
     parser.add_argument('--model', type=str, choices=[x.value for x in MODEL], default=MODEL.DDPM.value)
@@ -82,11 +82,11 @@ def parse_args() -> Tuple[ITrainArgs, bool, IAddArgs]:
             del config[key.value]
 
     if args.lr is not None:
-        config['training']['learning_rate'] = args.lr
+        config['training']['optimizer_params']['lr'] = args.lr
     if args.max_lr is not None:
-        config['training']['max_lr'] = args.max_lr
-    if args.step_lr_schedule is not None:
-        config['training']['lr_scheduler'] = LR_SCHEDULER.STEP if args.step_lr_schedule else None
+        config['training']['lr_scheduler_params']['max_lr'] = args.max_lr
+    if args.lr_scheduler is not None:
+        config['training']['lr_scheduler'] = args.lr_scheduler
     if args.n_step_lr is not None:
         config['training']['lr_scheduler_params']['step_size'] = args.n_step_lr
 

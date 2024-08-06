@@ -217,8 +217,8 @@ class Trainer:
         sigmas = dp_utils.get_sigmas(self.dataset_config['T'], betas, self.samplers_config['deterministic_sampling'])
         alphas = dp_utils.get_alphas(betas)
         alpha_bar = dp_utils.get_alphas_bar(alphas)
-        diffusion_process_instance = DiffusionProcess(betas, self.dataset_config['dim'])
-        diffusion_process_instance.to(device)
+        dp = DiffusionProcess(betas, self.dataset_config['dim'])
+        dp.to(device)
 
         for sampler_name in self.samplers_config['samplers']:
             if sampler_name == SAMPLERS.STANDARD:
@@ -262,7 +262,7 @@ class Trainer:
             sampler.to(device)
             samplers.append(sampler)
 
-        return samplers, diffusion_process_instance
+        return samplers, dp
 
     @property
     def model_name(self) -> MODEL:

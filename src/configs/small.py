@@ -21,7 +21,7 @@ config = Config(
             width_expansion_factor=2,
             n_convs=1,
             kernel_size=2,
-            resblock=False,
+            resblock=True,
         ),
         length=10_000,
     ),
@@ -34,18 +34,17 @@ config = Config(
     ),
     sampler=SamplerConfig(
         samplers=[SAMPLERS.STANDARD, SAMPLERS.FAST_DPM, SAMPLERS.DDIM],
-        num_samples=10,
+        num_samples=2,
         deterministic_sampling=True,
     ),
     training=TrainingConfig(
         batch_size=64,
-        learning_rate=1e-5,
-        max_lr=1e-3,
         epochs=10,
         seed=42,
         gradient_clip_value=True,
         optimizer_type=OPTIMIZER.ADAMW,
         optimizer_params={
+            'lr': 1e-4,
         },
         lr_scheduler=LR_SCHEDULER.ONE_CYCLE_LR,
         lr_scheduler_params={

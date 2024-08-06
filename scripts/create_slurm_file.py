@@ -18,15 +18,16 @@ def slurm_template(
         'python',
         'run.py',
         *[
-            f'--{k} "{v}"'
-            for k, v in
-            [
-                ('config_name', args.config_name),
-                ('run_id', args.run_id),
-                ('with_parallel', add_args.with_parallel),
-            ]
-            if v is not None
-        ]
+             f'--{k} "{v}"'
+             for k, v in
+             [
+                 ('config_name', args.config_name),
+                 ('run_id', args.run_id),
+             ]
+             if v is not None
+         ] + (
+             ['--with_parallel' if add_args.with_parallel else []]
+         )
     ])
 
     return (
