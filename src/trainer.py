@@ -20,10 +20,6 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from typing_extensions import assert_never
 
-import diffusion_process
-from diffusion_process.ddim import DDIMSampler
-from diffusion_process.fast_dpm import FastDPM
-from diffusion_process.standard_sampler import StandardSampler
 from src.config_types import Config
 from src.config_types import FashionMNISTConfig
 from src.config_types import SamplerConfig
@@ -38,7 +34,12 @@ from src.datasets.base_diffusion_dataset import DiffusionDatasetFactory
 from src.datasets.fashionMNIST import FashionMNISTDatasetFactory
 from src.models.abstract_diffusion_model import AbstractDiffusionModel
 from src.models.ddpm import DDPMModel
+from src.models.diffusion_process import DiffusionProcess
+from src.samplers import dp_utils
 from src.samplers.abstract_sampler import AbstractSampler
+from src.samplers.ddim import DDIMSampler
+from src.samplers.fast_dpm import FastDPM
+from src.samplers.standard_sampler import StandardSampler
 from src.types import Checkpoint
 from src.types import IConfigName
 from src.types import IEarlyStopped
@@ -209,15 +210,14 @@ class Trainer:
     def get_loss_fn() -> nn.Module:
         return nn.MSELoss()
 
-    def get_samplers(self, device) -> Tuple[List[AbstractSampler], diffusion_process.DiffusionProcess]:
+    def get_samplers(self, device) -> Tuple[List[AbstractSampler], DiffusionProcess]:
         samplers: List[AbstractSampler] = []
 
-        betas = diffusion_process.get_betas(self.dataset_config['T'])
-        sigmas = diffusion_process.get_sigmas(self.dataset_config['T'], betas,
-                                              self.samplers_config['deterministic_sampling'])
-        alphas = diffusion_process.get_alphas(betas)
-        alpha_bar = diffusion_process.get_alphas_bar(alphas)
-        diffusion_process_instance = diffusion_process.DiffusionProcess(betas, self.dataset_config['dim'])
+        betas = dp_utils.get_betas(self.dataset_config['T'])
+        sigmas = dp_utils.get_sigmas(self.dataset_config['T'], betas, self.samplers_config['deterministic_sampling'])
+        alphas = dp_utils.get_alphas(betas)
+        alpha_bar = dp_utils.get_alphas_bar(alphas)
+        diffusion_process_instance = DiffusionProcess(betas, self.dataset_config['dim'])
         diffusion_process_instance.to(device)
 
         for sampler_name in self.samplers_config['samplers']:
@@ -247,7 +247,7 @@ class Trainer:
                 tau = torch.Tensor(list(range(self.dataset_config['T'] - 1, 0, -50)[::-1]))
                 print(tau)
                 tau = tau.long()
-                alphas = diffusion_process.get_alphas(betas)
+                alphas = dp_utils.get_alphas(betas)
 
                 sampler = DDIMSampler(
                     alphas=alphas,
@@ -492,7 +492,7 @@ class Trainer:
     def _train(
             self,
             diffusion_model: AbstractDiffusionModel,
-            dp: diffusion_process.DiffusionProcess,
+            dp: DiffusionProcess,
             writer: SummaryWriter,
             device: torch.device,
             start_epoch: int,
@@ -526,7 +526,7 @@ class Trainer:
     def _epoch_step(
             self,
             diffusion_model: AbstractDiffusionModel,
-            dp: diffusion_process.DiffusionProcess,
+            dp: DiffusionProcess,
             split: SPLIT,
             dataset_wrapper: DiffusionDatasetFactory,
             optimizer: optim.Optimizer,

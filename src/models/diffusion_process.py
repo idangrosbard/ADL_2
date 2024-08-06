@@ -5,8 +5,8 @@ from torch import LongTensor
 from torch import Tensor
 from torch import nn
 
-from .utils import get_alphas
-from .utils import get_alphas_bar
+from src.samplers.dp_utils import get_alphas
+from src.samplers.dp_utils import get_alphas_bar
 
 
 class DiffusionProcess(nn.Module):

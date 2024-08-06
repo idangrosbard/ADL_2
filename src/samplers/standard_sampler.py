@@ -4,9 +4,9 @@ from torch import Tensor
 from src.models.abstract_diffusion_model import AbstractDiffusionModel
 from src.samplers.abstract_sampler import AbstractSampler
 from src.types import TimeStep
-from .utils import get_alphas
-from .utils import get_alphas_bar
-from .utils import get_sigmas
+from .dp_utils import get_alphas
+from .dp_utils import get_alphas_bar
+from .dp_utils import get_sigmas
 
 
 class StandardSampler(AbstractSampler):
