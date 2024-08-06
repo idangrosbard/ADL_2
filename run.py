@@ -153,7 +153,7 @@ def main_local(main_args: ITrainArgs, add_args: IAddArgs):
         )
 
 
-def main(main_args, with_slurm, add_args):
+def main(main_args: ITrainArgs, with_slurm: bool, add_args: IAddArgs) -> None:
     func = main_with_slurm if with_slurm else main_local
     func(main_args=main_args, add_args=add_args)
 

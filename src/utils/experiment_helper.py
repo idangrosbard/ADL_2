@@ -1,15 +1,13 @@
 import importlib
 import time
 from typing import Optional
-from typing import Type
 
-import humanize
 from typing_extensions import assert_never
 
+from src.config_types import Config
 from src.consts import FORMATS
 from src.types import CONFIG_KEYS
 from src.types import IConfigName
-from src.config_types import Config
 from src.types import MODEL
 
 

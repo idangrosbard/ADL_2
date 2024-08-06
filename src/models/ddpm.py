@@ -1,11 +1,11 @@
 import torch
 from torch import Tensor
 
-from ddpm import PositionalEncoding
-from denoiser_backbones import get_unet
 from src.config_types import DDPMConfig
 from src.config_types import FashionMNISTConfig
 from src.models.abstract_diffusion_model import AbstractDiffusionModel
+from src.models.denoiser_backbones import get_unet
+from src.models.positional_encoding import PositionalEncoding
 
 
 class DDPMModel(AbstractDiffusionModel):

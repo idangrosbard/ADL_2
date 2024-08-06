@@ -1,14 +1,18 @@
-from torch import nn, Tensor
-import torch
 from typing import List
+
+from torch import Tensor
+from torch import nn
+
+from src.models.denoiser_backbones.decoder_block import DecoderBlock
+from src.models.denoiser_backbones.encoder_block import EncoderBlock
 
 
 class UNet(nn.Module):
     def __init__(
             self,
-            encoder_blocks: List[nn.Module],
-            bridge: nn.Module,
-            decoder_blocks: List[nn.Module],
+            encoder_blocks: List[EncoderBlock],
+            bridge: EncoderBlock,
+            decoder_blocks: List[DecoderBlock],
             kernel_size: int,
     ) -> None:
         super().__init__()

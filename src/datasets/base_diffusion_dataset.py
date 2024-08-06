@@ -1,16 +1,13 @@
 from abc import ABC
 from abc import abstractmethod
-from pathlib import Path
 from typing import Tuple
 
 import torch
 from PIL.Image import Image
 from torch import distributions
-from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from typing_extensions import assert_never
 
-from src.consts import PATHS
 from src.types import SPLIT
 from src.types import T_SAMPLER
 from src.types import TimeStep
@@ -33,11 +30,11 @@ class DiffusionDataset(Dataset):
             assert_never(t_sampler)
 
     def __len__(self) -> int:
-        return len(self.dataset)
+        return len(self.dataset)  # type: ignore
 
     def __getitem__(self, idx) -> Tuple[Image, torch.Tensor]:
         img = self.dataset[idx][0]
-        t = self.t_sampler.sample((1,)).long()
+        t = self.t_sampler.sample(torch.Size([1])).long()
         return img, t
 
 

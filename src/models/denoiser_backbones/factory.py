@@ -2,7 +2,6 @@ from src.config_types import UNetConfig
 from .decoder_block import DecoderBlock
 from .encoder_block import EncoderBlock
 from .u_net import UNet
-from torch import nn, Tensor
 
 
 def get_unet(unet_config: UNetConfig) -> UNet:

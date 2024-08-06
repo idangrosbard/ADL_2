@@ -1,11 +1,12 @@
-from torch import nn, Tensor, LongTensor
 import torch
-from typing import Tuple
+from torch import Tensor
 
 from src.models.abstract_diffusion_model import AbstractDiffusionModel
 from src.samplers.abstract_sampler import AbstractSampler
 from src.types import TimeStep
-from .utils import get_alphas_bar, get_alphas, get_sigmas
+from .utils import get_alphas
+from .utils import get_alphas_bar
+from .utils import get_sigmas
 
 
 class StandardSampler(AbstractSampler):
@@ -25,7 +26,7 @@ class StandardSampler(AbstractSampler):
     def get_z(self, t: TimeStep, b_size: int) -> Tensor:
         z = torch.zeros(b_size, 1, self.shape, self.shape)
         if (t > 0) and (not self.deterministic):
-            z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
+            z = self.sampling_distribution.sample(torch.Size([b_size])).view(b_size, 1, self.shape, self.shape)
         return z.to(self.alphas_t_bar.device)
 
     def denoise_step(self, denoiser: AbstractDiffusionModel, t: TimeStep, t_batch: Tensor, x: Tensor,
@@ -43,12 +44,12 @@ class StandardSampler(AbstractSampler):
 
     def forward(self, diffusion_model: AbstractDiffusionModel, b_size: int) -> Tensor:
         # Sample random noise
-        x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(
+        x = self.sampling_distribution.sample(torch.Size([b_size])).view(b_size, 1, self.shape, self.shape).to(
             self.alphas_t_bar.device)
 
         # Iterate for t steps...
         for t in range(self.T - 1, -1, -1):
             t_batch = torch.tensor([t for _ in range(b_size)], device=x.device)
-            z = self.get_z(t, b_size)
-            x = self.denoise_step(diffusion_model, t, t_batch, x, z)
+            z = self.get_z(TimeStep(t), b_size)
+            x = self.denoise_step(diffusion_model, TimeStep(t), t_batch, x, z)
         return x

@@ -10,9 +10,6 @@ from typing import Optional
 from typing import Tuple
 
 import humanize
-from tqdm import tqdm
-from typing_extensions import assert_never
-
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -20,20 +17,22 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+from typing_extensions import assert_never
 
 import diffusion_process
-from diffusion_process.standard_sampler import StandardSampler
-from diffusion_process.fast_dpm import FastDPM
 from diffusion_process.ddim import DDIMSampler
-
+from diffusion_process.fast_dpm import FastDPM
+from diffusion_process.standard_sampler import StandardSampler
 from src.config_types import Config
 from src.config_types import FashionMNISTConfig
 from src.config_types import SamplerConfig
+from src.config_types import TrainingConfig
 from src.config_types import get_sub_config
+from src.consts import C_STEPS
 from src.consts import DDP
 from src.consts import FORMATS
 from src.consts import PATHS
-from src.consts import C_STEPS
 from src.consts import STEP_TIMINGS_TO_LR_SCHEDULER
 from src.datasets.base_diffusion_dataset import DiffusionDatasetFactory
 from src.datasets.fashionMNIST import FashionMNISTDatasetFactory
@@ -44,13 +43,12 @@ from src.types import Checkpoint
 from src.types import IConfigName
 from src.types import IEarlyStopped
 from src.types import IMetrics
-from src.types import MODEL
 from src.types import LR_SCHEDULER
 from src.types import METRICS
+from src.types import MODEL
 from src.types import OPTIMIZER
 from src.types import SAMPLERS
 from src.types import SPLIT
-from src.config_types import TrainingConfig
 from src.types import STEP_TIMING
 from src.utils.experiment_helper import construct_experiment_name
 from src.utils.experiment_helper import create_run_id
@@ -59,7 +57,7 @@ from src.utils.experiment_helper import get_model_name_from_config
 from src.utils.seed import set_seed
 
 
-def setup(rank, world_size):
+def setup(rank: int, world_size: int) -> None:
     os.environ['MASTER_ADDR'] = DDP.MASTER_ADDR
     os.environ['MASTER_PORT'] = DDP.MASTER_PORT
     dist.init_process_group(DDP.BACKEND, rank=rank, world_size=world_size)
@@ -87,7 +85,7 @@ class Trainer:
         self.total_steps = 0
         self.early_stopping_counter = 0
 
-    def configure_logging(self):
+    def configure_logging(self) -> None:
         (PATHS.TENSORBOARD_DIR / self.relative_path).mkdir(parents=True, exist_ok=True)
         if self.is_master_process:
             self.logger.addHandler(logging.StreamHandler())
@@ -117,7 +115,7 @@ class Trainer:
     def dataset_config(self) -> FashionMNISTConfig:
         return self._config['fashion_mnist']
 
-    def dump_config(self):
+    def dump_config(self) -> None:
         path = PATHS.TENSORBOARD_DIR / self.relative_path / f'config_{time.strftime(FORMATS.TIME)}.json'
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -207,7 +205,8 @@ class Trainer:
 
         assert_never(scheduler_type)
 
-    def get_loss_fn(self) -> nn.Module:
+    @staticmethod
+    def get_loss_fn() -> nn.Module:
         return nn.MSELoss()
 
     def get_samplers(self, device) -> Tuple[List[AbstractSampler], diffusion_process.DiffusionProcess]:
@@ -317,8 +316,8 @@ class Trainer:
 
     def train(self, rank=0, world_size=1) -> Dict[str, Any]:
         set_seed(self.training_config['seed'])
-        self._rank = rank or 0
-        self._world_size = world_size or 1
+        self._rank = rank or 0  # noqa
+        self._world_size = world_size or 1  # noqa
 
         if self.is_distributed:
             setup(rank, world_size)
@@ -333,7 +332,7 @@ class Trainer:
         checkpoint = self.load_checkpoint(device)
 
         dataset_wrapper = FashionMNISTDatasetFactory(config=self.dataset_config)
-        samplers, diffusion_process = self.get_samplers(device=device)
+        samplers, dp = self.get_samplers(device=device)
 
         optimizer = self.get_optimizer(diffusion_model)
         lr_scheduler = self.get_lr_scheduler(optimizer)
@@ -359,7 +358,7 @@ class Trainer:
 
         metrics = self._train(
             diffusion_model=diffusion_model,
-            diffusion_process=diffusion_process,
+            dp=dp,
             writer=writer,
             device=device,
             start_epoch=start_epoch,
@@ -373,7 +372,7 @@ class Trainer:
 
     def _lr_scheduler_step(
             self,
-            scheduler: torch.optim.lr_scheduler.LRScheduler,
+            scheduler: Optional[torch.optim.lr_scheduler.LRScheduler],
             step_timing: STEP_TIMING,
             writer: SummaryWriter,
             loss: Optional[float] = None,
@@ -493,7 +492,7 @@ class Trainer:
     def _train(
             self,
             diffusion_model: AbstractDiffusionModel,
-            diffusion_process: diffusion_process.DiffusionProcess,
+            dp: diffusion_process.DiffusionProcess,
             writer: SummaryWriter,
             device: torch.device,
             start_epoch: int,
@@ -508,7 +507,7 @@ class Trainer:
             diffusion_model.train()
             early_stopped, metrics = self._epoch_step(
                 diffusion_model=diffusion_model,
-                diffusion_process=diffusion_process,
+                dp=dp,
                 split=SPLIT.TRAIN,
                 dataset_wrapper=dataset_wrapper,
                 optimizer=optimizer,
@@ -527,7 +526,7 @@ class Trainer:
     def _epoch_step(
             self,
             diffusion_model: AbstractDiffusionModel,
-            diffusion_process: diffusion_process.DiffusionProcess,
+            dp: diffusion_process.DiffusionProcess,
             split: SPLIT,
             dataset_wrapper: DiffusionDatasetFactory,
             optimizer: optim.Optimizer,
@@ -541,12 +540,12 @@ class Trainer:
         metrics: IMetrics = IMetrics({})
         loss_fn = self.get_loss_fn()
 
-        desc = lambda batch, loss: ' '.join([
+        desc = lambda _batch, _loss: ' '.join([
             'train' if split == SPLIT.TRAIN else 'eval',
             f'epoch {epoch + 1} / {self.training_config["epochs"]}',
-            f'batches: {batch + 1} / {len(data_loader)}',
+            f'batches: {_batch + 1} / {len(data_loader)}',
             f'total steps: {self.total_steps + 1}',
-            f'loss: {loss:.4f}' if loss else ''
+            f'loss: {_loss:.4f}' if _loss else ''
         ])
 
         pbar = tqdm(data_loader, desc=desc(0, None), disable=not self.is_master_process)
@@ -554,7 +553,7 @@ class Trainer:
             x_0, t = data
             x_0, t = x_0.to(device), t.to(device)  # noqa
             optimizer.zero_grad()
-            x_t, epsilon = diffusion_process.sample(x_0, t)
+            x_t, epsilon = dp.sample(x_0, t)
             epsilon_hat = diffusion_model(x_t, t)
             loss = loss_fn(epsilon, epsilon_hat)
             pbar.set_description(desc(batch + 1, loss.item()))
@@ -583,7 +582,7 @@ class Trainer:
                         diffusion_model.eval()
                         _, metrics = self._epoch_step(
                             diffusion_model=diffusion_model,
-                            diffusion_process=diffusion_process,
+                            dp=dp,
                             split=SPLIT.EVAL,
                             dataset_wrapper=dataset_wrapper,
                             optimizer=optimizer,

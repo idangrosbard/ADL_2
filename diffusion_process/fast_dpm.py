@@ -1,18 +1,16 @@
-from torch import nn, Tensor
-import torch
-import numpy as np
 import math
+import torch
+from torch import Tensor
 
 from src.models.abstract_diffusion_model import AbstractDiffusionModel
 from src.samplers.abstract_sampler import AbstractSampler
-from .utils import get_alphas_bar, get_alphas
-
 
 
 def stirling_approx(t: float, delta_beta: float, beta_0: float) -> float:
     # Perform stirling 
     beta_hat = (1 - beta_0) / delta_beta
-    return t * delta_beta + (beta_hat + 1/2) * math.log(beta_hat) - (beta_hat - t + 1/2) * math.log(beta_hat - t) - t * + 1/12 * (1 / beta_hat - 1 / (beta_hat - t))
+    return t * delta_beta + (beta_hat + 1 / 2) * math.log(beta_hat) - (beta_hat - t + 1 / 2) * math.log(
+        beta_hat - t) - t * + 1 / 12 * (1 / beta_hat - 1 / (beta_hat - t))
 
 
 def init_approx_t(alpha_bar: Tensor, eta_s: Tensor) -> float:
@@ -38,13 +36,14 @@ def approximate_t(eta_s: float, alpha_bar: Tensor, delta_beta: float, beta_0: fl
             t_min = t
             t = (t_max + t) / 2
 
-        else: # stirling_approx(t, delta_beta, beta_0) == eta_s:
+        else:  # stirling_approx(t, delta_beta, beta_0) == eta_s:
             break
     return t
 
 
 class FastDPM(AbstractSampler):
-    def __init__(self, shape: int, alpha_bar: Tensor, delta_beta: float, beta_0: float, tau: Tensor | None, eta: Tensor | None) -> None:
+    def __init__(self, shape: int, alpha_bar: Tensor, delta_beta: float, beta_0: float, tau: Tensor | None,
+                 eta: Tensor | None) -> None:
         super().__init__()
         self.register_buffer('alpha_bar_t', alpha_bar)
         if (tau is None) and (eta is not None):
@@ -69,13 +68,13 @@ class FastDPM(AbstractSampler):
         self.register_buffer('eta_tilde', eta_tilde)
         self.shape = shape
 
-        self.sampling_distribution = torch.distributions.MultivariateNormal(torch.zeros(shape ** 2), torch.eye(shape ** 2))
-
+        self.sampling_distribution = torch.distributions.MultivariateNormal(torch.zeros(shape ** 2),
+                                                                            torch.eye(shape ** 2))
 
     def get_z(self, t: int, b_size: int) -> Tensor:
         z = torch.zeros(b_size, 1, self.shape, self.shape)
         if t > 0:
-            z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
+            z = self.sampling_distribution.sample(torch.Size([b_size])).view(b_size, 1, self.shape, self.shape)
         return z.to(self.gamma_bar.device)
 
     def denoise_step(self, denoiser: AbstractDiffusionModel, s: int, t: Tensor, x_s: Tensor, eps: Tensor) -> Tensor:
@@ -89,7 +88,8 @@ class FastDPM(AbstractSampler):
         return x_s_1
 
     def forward(self, diffusion_model: AbstractDiffusionModel, b_size: int) -> Tensor:
-        x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.gamma_bar.device)
+        x = self.sampling_distribution.sample(torch.Size([b_size, ])).view(b_size, 1, self.shape, self.shape).to(
+            self.gamma_bar.device)
         for s, t in zip(range(self.tau.shape[0] - 1, -1, -1), self.tau):
             t_batch = torch.tensor([t for _ in range(b_size)], device=x.device)
             z = self.get_z(t, b_size)

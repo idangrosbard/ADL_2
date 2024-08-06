@@ -8,3 +8,4 @@ jupyterlab
 protobuf
 humanize
 torchvision
+tqdm

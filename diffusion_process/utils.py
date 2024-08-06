@@ -25,5 +25,3 @@ def get_sigmas(T: int, betas: torch.Tensor, x_0_fixed: bool = False) -> torch.Te
         sigmas = sigmas_square.sqrt()
         sigmas = torch.cat([torch.tensor([0]), sigmas])
     return sigmas
-        
-

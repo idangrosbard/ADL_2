@@ -1,5 +1,6 @@
 from src.config_types import Config
-from src.config_types import DDPMConfig, DPM_SOLVER_PPConfig
+from src.config_types import DDPMConfig
+from src.config_types import DPM_SOLVER_PPConfig
 from src.config_types import FashionMNISTConfig
 from src.config_types import SamplerConfig
 from src.config_types import TrainingConfig

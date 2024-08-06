@@ -1,11 +1,11 @@
 import torch
+import torchvision
 from torch.utils.data import Dataset
 
 from src.config_types import FashionMNISTConfig
 from src.consts import C_DATASETS
 from src.datasets.base_diffusion_dataset import DiffusionDatasetFactory
 from src.types import SPLIT
-import torchvision
 
 
 class FashionMNISTDatasetFactory(DiffusionDatasetFactory):
@@ -26,7 +26,6 @@ class FashionMNISTDatasetFactory(DiffusionDatasetFactory):
             train=split == SPLIT.TRAIN,
             transform=transform
         )
-
 
     @staticmethod
     def denormalize(x: torch.Tensor) -> torch.Tensor:
