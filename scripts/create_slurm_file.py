@@ -1,14 +1,11 @@
 import subprocess
 from pathlib import Path
-from typing import NamedTuple
 
 from src.consts import IAddArgs
 from src.types import ITrainArgs
-
 from src.utils.experiment_helper import construct_experiment_name
 from src.utils.experiment_helper import create_run_id
 from src.utils.experiment_helper import get_model_name_from_config
-from src.utils.experiment_helper import load_config
 
 
 def slurm_template(

@@ -26,7 +26,7 @@ class DDPMModel(AbstractDiffusionModel):
             dim=dataset_config['dim'],
         )
 
-    def forward_sequence_model(self, x: Tensor, t: Tensor) -> Tensor:
+    def _forward(self, x: Tensor, t: Tensor) -> Tensor:
         x_t_emb = self.pe(x, t)
         sigma_hat = self.unet(x_t_emb)
         return sigma_hat

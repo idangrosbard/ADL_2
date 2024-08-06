@@ -45,7 +45,6 @@ from src.types import IConfigName
 from src.types import IEarlyStopped
 from src.types import IMetrics
 from src.types import MODEL
-from src.types import CONFIG_KEYS
 from src.types import LR_SCHEDULER
 from src.types import METRICS
 from src.types import OPTIMIZER
@@ -210,7 +209,7 @@ class Trainer:
     def get_loss_fn(self) -> nn.Module:
         return nn.MSELoss()
 
-    def get_samplers(self, device) -> List[AbstractSampler]:
+    def get_samplers(self, device) -> Tuple[List[AbstractSampler], diffusion_process.DiffusionProcess]:
         samplers: List[AbstractSampler] = []
 
         betas = diffusion_process.get_betas(self.dataset_config['T'])
@@ -260,9 +259,10 @@ class Trainer:
                 raise NotImplementedError()
             else:
                 assert_never(sampler_name)
+            sampler.to(device)
             samplers.append(sampler)
 
-        return samplers
+        return samplers, diffusion_process_instance
 
     @property
     def model_name(self) -> MODEL:
@@ -332,7 +332,7 @@ class Trainer:
         checkpoint = self.load_checkpoint(device)
 
         dataset_wrapper = FashionMNISTDatasetFactory(config=self.dataset_config)
-        samplers = self.get_samplers(device=device)
+        samplers, diffusion_process = self.get_samplers(device=device)
 
         optimizer = self.get_optimizer(diffusion_model)
         lr_scheduler = self.get_lr_scheduler(optimizer)
@@ -358,6 +358,7 @@ class Trainer:
 
         metrics = self._train(
             diffusion_model=diffusion_model,
+            diffusion_process=diffusion_process,
             writer=writer,
             device=device,
             start_epoch=start_epoch,
@@ -433,6 +434,7 @@ class Trainer:
 
     def _sampling_step(
             self,
+            model: AbstractDiffusionModel,
             samplers: List[AbstractSampler],
             n_samples: int,
             dataset_wrapper: DiffusionDatasetFactory,
@@ -442,10 +444,10 @@ class Trainer:
             with torch.no_grad():
                 for sampler in samplers:
                     sampler.eval()
-                    sample = sampler(n_samples)
-                    for i in range(n_samples):  # TODO: what is this for?
+                    sample = sampler(model, n_samples)
+                    for i in range(n_samples):
                         writer.add_image(
-                            f'{type(sampler)} sampled image',
+                            f'{type(sampler)} sampled image {i}',
                             dataset_wrapper.denormalize(sample[i]),
                             self.total_steps
                         )
@@ -473,13 +475,13 @@ class Trainer:
 
     def _aggregate_metrics(self, metrics: IMetrics, device: torch.device) -> IMetrics:
         if self.is_distributed:
-            metrics = IMetrics(
-                dist.reduce(
-                    torch.tensor(list(metrics.values()), device=device),
-                    dst=0,
-                    op=dist.ReduceOp.SUM
-                ).cpu().numpy()
-            )
+            x = dist.reduce(
+                torch.tensor(list(metrics.values()), device=device),
+                dst=0,
+                op=dist.ReduceOp.SUM
+            ).cpu().numpy()
+
+            metrics = IMetrics(x)
             metrics = IMetrics({
                 key: value / self.world_size
                 for key, value in metrics.items()
@@ -489,6 +491,7 @@ class Trainer:
     def _train(
             self,
             diffusion_model: AbstractDiffusionModel,
+            diffusion_process: diffusion_process.DiffusionProcess,
             writer: SummaryWriter,
             device: torch.device,
             start_epoch: int,
@@ -503,6 +506,7 @@ class Trainer:
             diffusion_model.train()
             early_stopped, metrics = self._epoch_step(
                 diffusion_model=diffusion_model,
+                diffusion_process=diffusion_process,
                 split=SPLIT.TRAIN,
                 dataset_wrapper=dataset_wrapper,
                 optimizer=optimizer,
@@ -521,6 +525,7 @@ class Trainer:
     def _epoch_step(
             self,
             diffusion_model: AbstractDiffusionModel,
+            diffusion_process: diffusion_process.DiffusionProcess,
             split: SPLIT,
             dataset_wrapper: DiffusionDatasetFactory,
             optimizer: optim.Optimizer,
@@ -533,17 +538,24 @@ class Trainer:
         data_loader = self._get_dataset_loader(split)
         metrics: IMetrics = IMetrics({})
         loss_fn = self.get_loss_fn()
-        pbar = tqdm(data_loader, desc=f"{'train' if split == SPLIT.TRAIN else 'eval'} epoch...")
+
+        desc = lambda batch, loss: ' '.join([
+            'train' if split == SPLIT.TRAIN else 'eval',
+            f'epoch {epoch + 1} / {self.training_config["epochs"]}',
+            f'batches: {batch + 1} / {len(data_loader)}',
+            f'total steps: {self.total_steps + 1}',
+            f'loss: {loss:.4f}' if loss else ''
+        ])
+
+        pbar = tqdm(data_loader, desc=desc(0, None), disable=not self.is_master_process)
         for batch, data in enumerate(pbar):
             x_0, t = data
             x_0, t = x_0.to(device), t.to(device)  # noqa
-            if split == SPLIT.TRAIN:
-                optimizer.zero_grad()  # TODO: is it needed inside the if?
-            # TODO: which sampler should be used? should it be part of the model?
-            x_t, epsilon = self.diffusion_process.sample(x_0, t)
+            optimizer.zero_grad()
+            x_t, epsilon = diffusion_process.sample(x_0, t)
             epsilon_hat = diffusion_model(x_t, t)
-            outputs = diffusion_model.forward(epsilon, epsilon_hat)
-            loss = loss_fn(outputs, t)
+            loss = loss_fn(epsilon, epsilon_hat)
+            pbar.set_description(desc(batch + 1, loss.item()))
             if split == SPLIT.TRAIN:
                 loss.backward()
 
@@ -566,9 +578,10 @@ class Trainer:
                         and self.total_steps % C_STEPS.EVAL_STEP == 0
                 ):
                     with torch.no_grad():
-                        diffusion_model.eval()  # TODO: is it needed?
+                        diffusion_model.eval()
                         _, metrics = self._epoch_step(
                             diffusion_model=diffusion_model,
+                            diffusion_process=diffusion_process,
                             split=SPLIT.EVAL,
                             dataset_wrapper=dataset_wrapper,
                             optimizer=optimizer,
@@ -578,12 +591,13 @@ class Trainer:
                             epoch=epoch,
                             samplers=samplers
                         )
-                        diffusion_model.train()  # TODO: is it needed?
+                        diffusion_model.train()
 
                     metrics = self._aggregate_metrics(metrics, device)
                     self._lr_scheduler_step(lr_scheduler, STEP_TIMING.EVALUATION, writer, loss=metrics[METRICS.LOSS])
                     self._log_eval_metrics(metrics, writer)
                     self._sampling_step(
+                        model=diffusion_model,
                         samplers=samplers,
                         n_samples=self.samplers_config['num_samples'],
                         dataset_wrapper=dataset_wrapper,
@@ -594,8 +608,8 @@ class Trainer:
                         return IEarlyStopped(True), metrics
             elif split == SPLIT.EVAL:
                 if METRICS.LOSS not in metrics:
-                    metrics[METRICS.LOSS] = 0
-                metrics[METRICS.LOSS] += loss.item()
+                    metrics[METRICS.LOSS.value] = 0
+                metrics[METRICS.LOSS.value] += loss.item()
             else:
                 raise ValueError(f"Invalid split: {split}")
 

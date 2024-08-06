@@ -8,8 +8,10 @@ from torch import Tensor
 from torch import nn
 from typing_extensions import final
 
+from src.models.abstract_diffusion_model import AbstractDiffusionModel
+
 
 class AbstractSampler(nn.Module, ABC):
     @abstractmethod
-    def forward(self, b_size: int) -> Tensor:
+    def forward(self, diffusion_model: AbstractDiffusionModel, b_size: int) -> Tensor:
         pass

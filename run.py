@@ -24,8 +24,8 @@ def parse_args() -> Tuple[ITrainArgs, bool, IAddArgs]:
     parser = ArgumentParser()
     parser.add_argument('--config_name', type=str, default='small')  # TODO: remove default and make it required
     parser.add_argument('--run_id', type=str, default=None)
-    parser.add_argument('--with_parallel', type=bool, default=False)
-    parser.add_argument('--with_slurm', type=bool, default=False)
+    parser.add_argument('--with_parallel', action='store_true')
+    parser.add_argument('--with_slurm', action='store_true')
 
     parser.add_argument('--T', type=int)
     parser.add_argument('--batch_size', type=int)
@@ -33,15 +33,13 @@ def parse_args() -> Tuple[ITrainArgs, bool, IAddArgs]:
     parser.add_argument('--init_width', type=int)
     parser.add_argument('--width_expansion_factor', type=int)
     parser.add_argument('--n_convs', type=int)
-    parser.add_argument('--no_resblock', action='store_false')  # TODO: confusing, change to resblocks
+    parser.add_argument('--resblock', action='store_true')
     parser.add_argument('--lr', type=float)
     parser.add_argument('--max_lr', type=float)
     parser.add_argument('--step_lr_schedule', action='store_true')
     parser.add_argument('--n_step_lr', type=int)
-    # TODO: remove from config, compute automatically
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
     parser.add_argument('--sampling_freq', type=int)
-    parser.add_argument('--model', type=str, choices=[x.value for x in MODEL])
+    parser.add_argument('--model', type=str, choices=[x.value for x in MODEL], default=MODEL.DDPM.value)
     parser.add_argument('--input_dim', type=int)
     parser.add_argument('--model_depth', type=int)
     parser.add_argument('--sampler', type=str, nargs='+', choices=[x.value for x in SAMPLERS])
@@ -72,15 +70,15 @@ def parse_args() -> Tuple[ITrainArgs, bool, IAddArgs]:
         config['ddpm']['unet']['width_expansion_factor'] = args.width_expansion_factor
     if args.n_convs is not None:
         config['ddpm']['unet']['n_convs'] = args.n_convs
-    if args.no_resblock is not None:
-        config['ddpm']['unet']['resblock'] = args.no_resblock
+    if args.resblock is not None:
+        config['ddpm']['unet']['resblock'] = args.resblock
     if args.model_depth is not None:
         config['ddpm']['unet']['depth'] = args.model_depth
 
     # TODO: find better way to handle this
     assert args.model is not None, 'Model must be specified'
     for key in MODEL:
-        if key.value != args.model:
+        if key.value != args.model and key.value in config:
             del config[key.value]
 
     if args.lr is not None:

@@ -46,9 +46,9 @@ class DDIMSampler(AbstractSampler):
         return x
 
 
-    def forward(self, b_size: int) -> Tensor:
+    def forward(self, diffusion_model: AbstractDiffusionModel, b_size: int) -> Tensor:
         x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.alphas.device)
         for s in range(self.taus.shape[0] - 1, 0, -1):
             z = self.get_z(self.taus[s], b_size)
-            x = self.denoise_step(s, x, z)
+            x = self.denoise_step(diffusion_model, s, x, z)
         return x

@@ -4,6 +4,7 @@ from src.config_types import FashionMNISTConfig
 from src.config_types import SamplerConfig
 from src.config_types import TrainingConfig
 from src.config_types import UNetConfig
+from src.types import LR_SCHEDULER
 from src.types import OPTIMIZER
 from src.types import SAMPLERS
 from src.types import T_SAMPLER
@@ -43,12 +44,11 @@ config = Config(
         seed=42,
         weight_decay=0.0,
         gradient_clip_value=None,
-        optimizer_type=OPTIMIZER.ADAM,
+        optimizer_type=OPTIMIZER.ADAMW,
         optimizer_params={},
-        lr_scheduler=None,
+        lr_scheduler=LR_SCHEDULER.ONE_CYCLE_LR,
         lr_scheduler_params={
-            'step_size': 80,
-            'gamma': 0.1,
+            'max_lr': 0.1,
         },
         early_stopping=False,
         early_stopping_patience=5,

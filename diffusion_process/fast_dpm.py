@@ -88,10 +88,10 @@ class FastDPM(AbstractSampler):
         x_s_1 = overall_scale * (x_s - epsilon_scale * epsilon_hat) + noise_scale * eps
         return x_s_1
 
-    def forward(self, b_size: int) -> Tensor:
+    def forward(self, diffusion_model: AbstractDiffusionModel, b_size: int) -> Tensor:
         x = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape).to(self.gamma_bar.device)
         for s, t in zip(range(self.tau.shape[0] - 1, -1, -1), self.tau):
             t_batch = torch.tensor([t for _ in range(b_size)], device=x.device)
             z = self.get_z(t, b_size)
-            x = self.denoise_step(s, t_batch, x, z)
+            x = self.denoise_step(diffusion_model, s, t_batch, x, z)
         return x

@@ -35,8 +35,8 @@ class SAMPLERS(STREnum):
 
 
 class MODEL(STREnum):
-    DDPM = 'DDPM'
-    EDM = 'EDM'
+    DDPM = 'ddpm'
+    EDM = 'edm'
 
 
 class CONFIG_KEYS(STREnum):
@@ -76,7 +76,7 @@ IMetrics = NewType('IMetrics', Dict[str, float])
 
 class ITrainArgs(NamedTuple):
     config_name: IConfigName
-    config: Config
+    config: Dict # TODO: to avoid circular, fix it
     run_id: Optional[str]
 
 
