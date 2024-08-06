@@ -174,20 +174,17 @@ class Trainer:
     def get_optimizer(self, model: torch.nn.Module) -> optim.Optimizer:
         optimizer_type = self.training_config['optimizer_type']
         optimizer_params = self.training_config['optimizer_params']
-        weight_decay = self.training_config['weight_decay']
 
         if optimizer_type == OPTIMIZER.ADAM:
             return optim.Adam(
                 model.parameters(),
                 lr=self.training_config['learning_rate'],
-                weight_decay=weight_decay,
                 **optimizer_params
             )
         elif optimizer_type == OPTIMIZER.ADAMW:
             return optim.AdamW(
                 model.parameters(),
                 lr=self.training_config['learning_rate'],
-                weight_decay=weight_decay,
                 **optimizer_params,
             )
 
@@ -195,14 +192,18 @@ class Trainer:
 
     def get_lr_scheduler(self, optimizer: optim.Optimizer) -> Optional[torch.optim.lr_scheduler.LRScheduler]:
         scheduler_type = self.training_config['lr_scheduler']
-        scheduler_params = self.training_config['lr_scheduler_params']
 
         if scheduler_type is None:
             return None
         elif scheduler_type == LR_SCHEDULER.STEP:
-            return optim.lr_scheduler.StepLR(optimizer, **scheduler_params)
+            return optim.lr_scheduler.StepLR(optimizer, **self.training_config['lr_scheduler_params'])
         elif scheduler_type == LR_SCHEDULER.ONE_CYCLE_LR:
-            return optim.lr_scheduler.OneCycleLR(optimizer, **scheduler_params)
+            return optim.lr_scheduler.OneCycleLR(
+                optimizer,
+                epochs=self.training_config['epochs'],
+                steps_per_epoch=len(self._get_dataset_loader(SPLIT.TRAIN)),
+                **self.training_config['lr_scheduler_params']
+            )
 
         assert_never(scheduler_type)
 
@@ -475,17 +476,18 @@ class Trainer:
 
     def _aggregate_metrics(self, metrics: IMetrics, device: torch.device) -> IMetrics:
         if self.is_distributed:
-            x = dist.reduce(
-                torch.tensor(list(metrics.values()), device=device),
+            reduced_metrics = torch.tensor(list(metrics.values())).to(device)
+            dist.reduce(
+                reduced_metrics,
                 dst=0,
                 op=dist.ReduceOp.SUM
-            ).cpu().numpy()
+            )
+            if self.is_master_process:
+                metrics = IMetrics({
+                    key: value.item() / self.world_size
+                    for key, value in zip(metrics.keys(), reduced_metrics)
+                })
 
-            metrics = IMetrics(x)
-            metrics = IMetrics({
-                key: value / self.world_size
-                for key, value in metrics.items()
-            })
         return metrics
 
     def _train(

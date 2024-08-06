@@ -31,7 +31,7 @@ class C_STEPS:
     WARMUP_STEPS = 0
     SAVE_STEP = 1000
     LOG_STEP = 50
-    EVAL_STEP = 200
+    EVAL_STEP = 1000
     SAMPLE_STEP = 100
     PRINT_GRAPH = False
 

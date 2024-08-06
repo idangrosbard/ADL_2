@@ -42,10 +42,10 @@ config = Config(
         max_lr=1e-3,
         epochs=10,
         seed=42,
-        weight_decay=0.0,
-        gradient_clip_value=None,
+        gradient_clip_value=True,
         optimizer_type=OPTIMIZER.ADAMW,
-        optimizer_params={},
+        optimizer_params={
+        },
         lr_scheduler=LR_SCHEDULER.ONE_CYCLE_LR,
         lr_scheduler_params={
             'max_lr': 0.1,

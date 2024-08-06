@@ -52,7 +52,6 @@ class TrainingConfig(TypedDict):
     max_lr: float
     epochs: int
     seed: int
-    weight_decay: float
     gradient_clip_value: Optional[float]
     optimizer_type: OPTIMIZER
     optimizer_params: Dict[str, Any]
