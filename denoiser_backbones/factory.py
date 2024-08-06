@@ -1,26 +1,64 @@
+from src.config_types import UNetConfig
 from .decoder_block import DecoderBlock
 from .encoder_block import EncoderBlock
 from .u_net import UNet
 from torch import nn, Tensor
 
 
-def get_unet(depth: int, n_channels: int = 1, p_dropout: float = 0.1, init_width: int = 64, width_expansion_factor: int = 2, n_convs: int = 2, resblocks: bool = True) -> UNet:
+def get_unet(unet_config: UNetConfig) -> UNet:
     encoder_blocks = []
     decoder_blocks = []
-    
-    in_channels = init_width
-    encoder_blocks.append(EncoderBlock(n_channels, in_channels, p_dropout, resblock=resblocks))
-    
-    for i in range(1, depth - 1):
-        encoder_blocks.append(EncoderBlock(in_channels, in_channels * width_expansion_factor, p_dropout, n_convs, resblock=resblocks))
-        in_channels *= width_expansion_factor
 
-    bridge = EncoderBlock(in_channels, in_channels * width_expansion_factor, p_dropout, n_convs, resblock=resblocks)
-    in_channels *= width_expansion_factor
+    in_channels = unet_config['init_width']
+    encoder_blocks.append(
+        EncoderBlock(
+            in_channels=unet_config['n_channels'],
+            out_channels=in_channels,
+            dropout=unet_config['p_dropout'],
+            n_convs=unet_config['n_convs'],
+            resblock=unet_config['resblock']
+        ),
+    )
 
-    for i in range(depth - 2):
-        decoder_blocks.append(DecoderBlock(in_channels, in_channels // width_expansion_factor, p_dropout, width_expansion_factor, n_convs, resblock=resblocks))
-        in_channels //= width_expansion_factor
-    
-    decoder_blocks.append(DecoderBlock(in_channels, n_channels, p_dropout, width_expansion_factor, n_convs, resblock=resblocks))
-    return UNet(encoder_blocks, bridge, decoder_blocks)
+    for i in range(1, unet_config['depth'] - 1):
+        encoder_blocks.append(EncoderBlock(
+            in_channels=in_channels,
+            out_channels=in_channels * unet_config['width_expansion_factor'],
+            dropout=unet_config['p_dropout'],
+            n_convs=unet_config['n_convs'],
+            resblock=unet_config['resblock']),
+        )
+        in_channels *= unet_config['width_expansion_factor']
+
+    bridge = EncoderBlock(
+        in_channels=in_channels,
+        out_channels=in_channels * unet_config['width_expansion_factor'],
+        dropout=unet_config['p_dropout'],
+        n_convs=unet_config['n_convs'],
+        resblock=unet_config['resblock']
+    )
+    in_channels *= unet_config['width_expansion_factor']
+
+    for i in range(unet_config['depth'] - 2):
+        decoder_blocks.append(
+            DecoderBlock(
+                in_channels=in_channels,
+                out_channels=in_channels // unet_config['width_expansion_factor'],
+                dropout=unet_config['p_dropout'],
+                upsample_width_factor=unet_config['width_expansion_factor'],
+                n_convs=unet_config['n_convs'],
+                resblock=unet_config['resblock']
+            ),
+        )
+        in_channels //= unet_config['width_expansion_factor']
+
+    decoder_blocks.append(DecoderBlock(
+        in_channels=in_channels,
+        out_channels=unet_config['n_channels'],
+        dropout=unet_config['p_dropout'],
+        upsample_width_factor=unet_config['width_expansion_factor'],
+        n_convs=unet_config['n_convs'],
+        resblock=unet_config['resblock']
+    ))
+
+    return UNet(encoder_blocks, bridge, decoder_blocks, unet_config['kernel_size'])

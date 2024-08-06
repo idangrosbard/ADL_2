@@ -4,10 +4,16 @@ from typing import List
 
 
 class UNet(nn.Module):
-    def __init__(self, encoder_blocks: List[nn.Module], bridge: nn.Module, decoder_blocks: List[nn.Module]) -> None:
-        super(UNet, self).__init__()
+    def __init__(
+            self,
+            encoder_blocks: List[nn.Module],
+            bridge: nn.Module,
+            decoder_blocks: List[nn.Module],
+            kernel_size: int,
+    ) -> None:
+        super().__init__()
         self.encoder_blocks = nn.ModuleList(encoder_blocks)
-        self.maxpool = nn.MaxPool2d(2)
+        self.maxpool = nn.MaxPool2d(kernel_size)
         self.bridge = bridge
         self.decoder_blocks = nn.ModuleList(decoder_blocks)
 
@@ -18,7 +24,7 @@ class UNet(nn.Module):
             x = encoder_block(x)
             history.append(x)
             x = self.maxpool(x)
-        
+
         x = self.bridge(x)
 
         for decoder_block in self.decoder_blocks:

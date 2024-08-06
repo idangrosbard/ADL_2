@@ -3,7 +3,7 @@ from torch import nn, Tensor
 
 class ResBlock(nn.Module):
     def __init__(self, n_channels: int, dropout: float = 0.5, n_convs: int = 3) -> None:
-        super(ResBlock, self).__init__()
+        super().__init__()
         
         layers = []
         for _ in range(n_convs):
@@ -17,4 +17,3 @@ class ResBlock(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return x + self.layers(x)
-        

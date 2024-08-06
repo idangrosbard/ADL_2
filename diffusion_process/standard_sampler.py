@@ -1,15 +1,18 @@
 from torch import nn, Tensor, LongTensor
 import torch
 from typing import Tuple
+
+from src.models.abstract_diffusion_model import AbstractDiffusionModel
+from src.samplers.abstract_sampler import AbstractSampler
+from src.types import TimeStep
 from .utils import get_alphas_bar, get_alphas, get_sigmas
 
 
-class StandardSampler(nn.Module):
-    def __init__(self, denoiser: nn.Module, T: int, betas: Tensor, shape: int, deterministic: bool = False):
-        super(StandardSampler, self).__init__()
+class StandardSampler(AbstractSampler):
+    def __init__(self, T: TimeStep, betas: Tensor, shape: int, deterministic: bool = False):
+        super().__init__()
         assert betas.shape == (T,)
 
-        self.denoiser = denoiser
         self.sampling_distribution = torch.distributions.MultivariateNormal(torch.zeros(shape ** 2), torch.eye(shape ** 2))
         self.register_buffer('sigmas', get_sigmas(T, betas, deterministic))
         self.register_buffer('alphas_t', get_alphas(betas))
@@ -18,15 +21,15 @@ class StandardSampler(nn.Module):
         self.register_buffer('shape', torch.tensor(shape))
         self.deterministic = deterministic
     
-    def get_z(self, t: int, b_size: int) -> Tensor:
+    def get_z(self, t: TimeStep, b_size: int) -> Tensor:
         z = torch.zeros(b_size, 1, self.shape, self.shape)
         if (t > 0) and (not self.deterministic):
             z = self.sampling_distribution.sample((b_size,)).view(b_size, 1, self.shape, self.shape)
         return z.to(self.alphas_t_bar.device)
     
-    def denoise_step(self, t: int, t_batch: Tensor, x: Tensor, z: Tensor) -> Tensor:
+    def denoise_step(self, denoiser: AbstractDiffusionModel, t: TimeStep, t_batch: Tensor, x: Tensor, z: Tensor) -> Tensor:
         # Algorithm step taken from "Algorithm 2" in DDPM paper
-        epsilon = self.denoiser(x, t_batch)
+        epsilon = denoiser(x, t_batch)
         epsilon_scale = ((1 - self.alphas_t[t]) / (1 - self.alphas_t_bar[t]).sqrt()).item()
 
         delta = x - epsilon_scale * epsilon
@@ -46,4 +49,3 @@ class StandardSampler(nn.Module):
             z = self.get_z(t, b_size)
             x = self.denoise_step(t, t_batch, x, z)
         return x
-        
