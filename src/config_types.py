@@ -21,6 +21,10 @@ class UNetConfig(TypedDict):
     n_convs: int
     kernel_size: int
     resblock: bool
+    stride: int
+    padding: int
+    upsample_scale_factor: int
+    upsample_mode: str
 
 
 class DDPMConfig(TypedDict):
@@ -42,6 +46,9 @@ class SamplerConfig(TypedDict):
     samplers: List[SAMPLERS]
     num_samples: int
     deterministic_sampling: bool
+    beta_1: float
+    beta_T: float
+    fast_dpm_num_steps: int
 
 
 class TrainingConfig(TypedDict):
@@ -55,6 +62,7 @@ class TrainingConfig(TypedDict):
     lr_scheduler_params: Dict[str, Any]
     early_stopping: bool
     early_stopping_patience: int
+    is_ref:bool
 
 
 class Config(TypedDict):

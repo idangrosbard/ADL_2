@@ -10,7 +10,7 @@ from .dp_utils import get_sigmas
 
 
 class StandardSampler(AbstractSampler):
-    def __init__(self, T: TimeStep, betas: Tensor, shape: int, deterministic: bool = False):
+    def __init__(self, T: TimeStep, betas: Tensor, shape: int, deterministic: bool):
         super().__init__()
         assert betas.shape == (T,)
 

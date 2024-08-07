@@ -14,7 +14,7 @@ from src.types import TimeStep
 config = Config(
     ddpm=DDPMConfig(
         unet=UNetConfig(
-            depth=5,
+            depth=4,
             n_channels=1,
             p_dropout=0.1,
             init_width=64,
@@ -22,8 +22,12 @@ config = Config(
             n_convs=1,
             kernel_size=2,
             resblock=True,
+            stride=1,
+            padding=1,
+            upsample_scale_factor=2,
+            upsample_mode='bilinear',
         ),
-        length=10_000,
+        length=500,
     ),
     dpm_solver_pp=DPM_SOLVER_PPConfig(
     ),
@@ -36,6 +40,9 @@ config = Config(
         samplers=[SAMPLERS.STANDARD, SAMPLERS.FAST_DPM, SAMPLERS.DDIM],
         num_samples=2,
         deterministic_sampling=True,
+        beta_1=1e-4,
+        beta_T=0.02,
+        fast_dpm_num_steps=20,
     ),
     training=TrainingConfig(
         batch_size=64,
@@ -46,11 +53,12 @@ config = Config(
         optimizer_params={
             'lr': 1e-4,
         },
-        lr_scheduler=LR_SCHEDULER.ONE_CYCLE_LR,
+        lr_scheduler=LR_SCHEDULER.STEP,
         lr_scheduler_params={
-            'max_lr': 0.1,
+            'step_size': 3,
         },
-        early_stopping=False,
-        early_stopping_patience=5,
+        early_stopping=True,
+        early_stopping_patience=3,
+        is_ref=False,
     ),
 )

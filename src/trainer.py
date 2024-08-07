@@ -35,6 +35,7 @@ from src.datasets.fashionMNIST import FashionMNISTDatasetFactory
 from src.models.abstract_diffusion_model import AbstractDiffusionModel
 from src.models.ddpm import DDPMModel
 from src.models.diffusion_process import DiffusionProcess
+from src.models.ref_ddpm.ddpm import RefDDPMModel
 from src.samplers import dp_utils
 from src.samplers.abstract_sampler import AbstractSampler
 from src.samplers.ddim import DDIMSampler
@@ -101,6 +102,7 @@ class Trainer:
         prefix = construct_experiment_name(
             self.config_name,
             self.model_name,
+            self.training_config['is_ref']
         )
         return f"{prefix}/{self._run_id}"
 
@@ -177,13 +179,11 @@ class Trainer:
         if optimizer_type == OPTIMIZER.ADAM:
             return optim.Adam(
                 model.parameters(),
-                lr=self.training_config['learning_rate'],
                 **optimizer_params
             )
         elif optimizer_type == OPTIMIZER.ADAMW:
             return optim.AdamW(
                 model.parameters(),
-                lr=self.training_config['learning_rate'],
                 **optimizer_params,
             )
 
@@ -213,13 +213,16 @@ class Trainer:
     def get_samplers(self, device) -> Tuple[List[AbstractSampler], DiffusionProcess]:
         samplers: List[AbstractSampler] = []
 
-        betas = dp_utils.get_betas(self.dataset_config['T'])
+        betas = dp_utils.get_betas(
+            self.dataset_config['T'], self.samplers_config['beta_1'], self.samplers_config['beta_T']
+        )
         sigmas = dp_utils.get_sigmas(self.dataset_config['T'], betas, self.samplers_config['deterministic_sampling'])
         alphas = dp_utils.get_alphas(betas)
         alpha_bar = dp_utils.get_alphas_bar(alphas)
         dp = DiffusionProcess(betas, self.dataset_config['dim'])
         dp.to(device)
 
+        sampler: AbstractSampler
         for sampler_name in self.samplers_config['samplers']:
             if sampler_name == SAMPLERS.STANDARD:
                 sampler = StandardSampler(
@@ -242,6 +245,7 @@ class Trainer:
                     beta_0=beta_0,
                     tau=tau,
                     eta=None,
+                    n_steps=self.samplers_config['fast_dpm_num_steps']
                 )
             elif sampler_name == SAMPLERS.DDIM:
                 tau = torch.Tensor(list(range(self.dataset_config['T'] - 1, 0, -50)[::-1]))
@@ -288,7 +292,7 @@ class Trainer:
             )
             data_loader = DataLoader(
                 dataset,
-                batch_size=self.training_config['batch_size'],
+                batch_size=self.training_config['batch_size'] // self.world_size,
                 sampler=sampler,
                 num_workers=DDP.NUM_WORKERS,
                 worker_init_fn=lambda x: set_seed(self.training_config['seed']),
@@ -306,7 +310,8 @@ class Trainer:
 
     def _init_diffusion_model(self) -> AbstractDiffusionModel:
         if self.model_name == MODEL.DDPM:
-            return DDPMModel(
+            model = RefDDPMModel if self.training_config['is_ref'] else DDPMModel
+            return model(
                 config=get_sub_config(self._config, get_config_key_by_arch(self.model_name)),
                 dataset_config=self.dataset_config,
             )
@@ -326,7 +331,7 @@ class Trainer:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.configure_logging()
 
-        writer = SummaryWriter(log_dir=str(PATHS.TENSORBOARD_DIR / self.relative_path))
+        writer = SummaryWriter(log_dir=str(PATHS.TENSORBOARD_DIR / self.relative_path)) if self.is_master_process else None
         diffusion_model = self._init_diffusion_model()
 
         checkpoint = self.load_checkpoint(device)
@@ -338,7 +343,7 @@ class Trainer:
         lr_scheduler = self.get_lr_scheduler(optimizer)
 
         start_epoch = 0
-        self.logger.info(f"Training starts")
+        self.logger.info(f"Training starts, for experiment: {self.relative_path}")
 
         if checkpoint is not None:
             diffusion_model.load_state_dict(checkpoint['model_state_dict'])
@@ -390,42 +395,38 @@ class Trainer:
 
             if self.is_master_process:
                 writer.add_scalar(
-                    '/'.join([
-                        self.relative_path,
-                        'LR'
-                    ]),
+                    'LR',
                     scheduler.get_last_lr()[0],
                     self.total_steps
                 )
+
+    @property
+    def should_print_to_screen(self) -> bool:
+        return self.is_master_process
 
     def _log_train_metrics(self, loss: float, writer: SummaryWriter, epoch: int, batch: int, total_batches: int):
         if self.is_master_process:
             # Log the training loss
             if self.total_steps % C_STEPS.LOG_STEP == 0:
                 writer.add_scalar(
-                    '/'.join([
-                        self.relative_path,
-                        'Loss'
-                    ]),
+                    'Loss',
                     loss,
                     self.total_steps
                 )
 
-                self.logger.info(', '.join([
-                    f'Epoch [{epoch + 1}/{self.training_config["epochs"]}]',
-                    f'Batch [{batch + 1}/{total_batches}]',
-                    f'Total Steps: {self.total_steps}',
-                    f'Loss: {loss:.4f}'
-                ]))
+                if not self.should_print_to_screen:
+                    self.logger.info(', '.join([
+                        f'Epoch [{epoch + 1}/{self.training_config["epochs"]}]',
+                        f'Batch [{batch + 1}/{total_batches}]',
+                        f'Total Steps: {self.total_steps}',
+                        f'Loss: {loss:.4f}'
+                    ]))
 
     def _log_eval_metrics(self, metrics: IMetrics, writer: SummaryWriter):
         if self.is_master_process:
             for key, value in metrics.items():
                 writer.add_scalar(
-                    '/'.join([
-                        self.relative_path,
-                        'test_' + key
-                    ]),
+                    'test_' + key,
                     value,
                     self.total_steps,
                 )
@@ -447,7 +448,7 @@ class Trainer:
                     sample = sampler(model, n_samples)
                     for i in range(n_samples):
                         writer.add_image(
-                            f'{type(sampler)} sampled image {i}',
+                            f'{type(sampler)}_{i}',
                             dataset_wrapper.denormalize(sample[i]),
                             self.total_steps
                         )
@@ -478,7 +479,7 @@ class Trainer:
             reduced_metrics = torch.tensor(list(metrics.values())).to(device)
             dist.reduce(
                 reduced_metrics,
-                dst=0,
+                dst=(int(os.environ.get('MASTER_PORT', 0)) % self.world_size),
                 op=dist.ReduceOp.SUM
             )
             if self.is_master_process:
@@ -505,6 +506,7 @@ class Trainer:
         metrics = IMetrics({})
         for epoch in range(start_epoch, self.training_config['epochs']):
             diffusion_model.train()
+            start_time = time.time()
             early_stopped, metrics = self._epoch_step(
                 diffusion_model=diffusion_model,
                 dp=dp,
@@ -517,6 +519,7 @@ class Trainer:
                 epoch=epoch,
                 samplers=samplers
             )
+            self.logger.info(f'Epoch {epoch + 1} took {time.time() - start_time:.2f} seconds')
             if early_stopped:
                 break
             self._lr_scheduler_step(lr_scheduler, STEP_TIMING.EPOCH, writer)
@@ -540,15 +543,15 @@ class Trainer:
         metrics: IMetrics = IMetrics({})
         loss_fn = self.get_loss_fn()
 
-        desc = lambda _batch, _loss: ' '.join([
+        desc = lambda _batch, _loss: ' | '.join([
             'train' if split == SPLIT.TRAIN else 'eval',
-            f'epoch {epoch + 1} / {self.training_config["epochs"]}',
-            f'batches: {_batch + 1} / {len(data_loader)}',
-            f'total steps: {self.total_steps + 1}',
+            f'Epoch {epoch + 1} / {self.training_config["epochs"]}',
+            f'Batch: {_batch + 1} / {len(data_loader)}',
+            f'Total Steps: {self.total_steps + 1}',
             f'loss: {_loss:.4f}' if _loss else ''
         ])
 
-        pbar = tqdm(data_loader, desc=desc(0, None), disable=not self.is_master_process)
+        pbar = tqdm(data_loader, desc=desc(0, None), disable=not self.should_print_to_screen)
         for batch, data in enumerate(pbar):
             x_0, t = data
             x_0, t = x_0.to(device), t.to(device)  # noqa

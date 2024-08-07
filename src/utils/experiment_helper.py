@@ -28,7 +28,10 @@ def get_config_key_by_arch(arch_name: MODEL) -> CONFIG_KEYS:
 def construct_experiment_name(
         config_name: IConfigName,
         model_name: MODEL,
+        is_ref: bool,
 ) -> str:
+    if is_ref:
+        model_name = f'{model_name}_ref'
     return '__'.join([
         config_name,
         model_name,

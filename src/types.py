@@ -4,7 +4,11 @@ from typing import Dict
 from typing import NamedTuple
 from typing import NewType
 from typing import Optional
+from typing import TYPE_CHECKING
 from typing import TypedDict
+
+if TYPE_CHECKING:
+    from src.config_types import Config
 
 
 class STREnum(str, Enum):
@@ -72,7 +76,7 @@ IMetrics = NewType('IMetrics', Dict[str, float])
 
 class ITrainArgs(NamedTuple):
     config_name: IConfigName
-    config: Dict  # TODO: to avoid circular, fix it
+    config: "Config"  # TODO: to avoid circular, fix it
     run_id: Optional[str]
 
 

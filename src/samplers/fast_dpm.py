@@ -20,7 +20,7 @@ def init_approx_t(alpha_bar: Tensor, eta_s: Tensor) -> float:
             return t
 
 
-def approximate_t(eta_s: float, alpha_bar: Tensor, delta_beta: float, beta_0: float, n_steps: int = 20) -> float:
+def approximate_t(eta_s: float, alpha_bar: Tensor, delta_beta: float, beta_0: float, n_steps: int) -> float:
     # Init variables for binary search
     t_min = init_approx_t(alpha_bar, eta_s)
     t_max = t_min + 1
@@ -43,11 +43,11 @@ def approximate_t(eta_s: float, alpha_bar: Tensor, delta_beta: float, beta_0: fl
 
 class FastDPM(AbstractSampler):
     def __init__(self, shape: int, alpha_bar: Tensor, delta_beta: float, beta_0: float, tau: Tensor | None,
-                 eta: Tensor | None) -> None:
+                 eta: Tensor | None, n_steps: int) -> None:
         super().__init__()
         self.register_buffer('alpha_bar_t', alpha_bar)
         if (tau is None) and (eta is not None):
-            tau = torch.tensor([approximate_t(eta[s], alpha_bar, delta_beta, beta_0) for s in eta.shape[0]])
+            tau = torch.tensor([approximate_t(eta[s], alpha_bar, delta_beta, beta_0, n_steps) for s in eta.shape[0]])
 
         elif (tau is not None) and (eta is None):
             alpha_bar_s = alpha_bar[tau]

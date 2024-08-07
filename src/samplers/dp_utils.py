@@ -1,7 +1,7 @@
 import torch
 
 
-def get_betas(T: int, beta_1: float = 1e-4, beta_T: float = 0.02) -> torch.Tensor:
+def get_betas(T: int, beta_1: float, beta_T: float) -> torch.Tensor:
     betas = torch.linspace(beta_1, beta_T, T)
     return betas
 
@@ -16,7 +16,7 @@ def get_alphas_bar(alphas: torch.Tensor) -> torch.Tensor:
     return alphas_bar
 
 
-def get_sigmas(T: int, betas: torch.Tensor, x_0_fixed: bool = False) -> torch.Tensor:
+def get_sigmas(T: int, betas: torch.Tensor, x_0_fixed: bool) -> torch.Tensor:
     if not x_0_fixed:
         sigmas = betas.sqrt()
     else:
