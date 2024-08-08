@@ -1,4 +1,3 @@
-import importlib
 import time
 from typing import Optional
 
@@ -9,12 +8,6 @@ from src.consts import FORMATS
 from src.types import CONFIG_KEYS
 from src.types import IConfigName
 from src.types import MODEL
-
-
-def load_config(config_name: IConfigName) -> Config:
-    # Dynamically import the config
-    config_module = importlib.import_module(f'src.configs.{config_name}')
-    return config_module.config
 
 
 def get_config_key_by_arch(arch_name: MODEL) -> CONFIG_KEYS:
@@ -28,9 +21,9 @@ def get_config_key_by_arch(arch_name: MODEL) -> CONFIG_KEYS:
 def construct_experiment_name(
         config_name: IConfigName,
         model_name: MODEL,
-        is_ref: bool,
+        with_ref: bool,
 ) -> str:
-    if is_ref:
+    if with_ref:
         model_name = f'{model_name}_ref'
     return '__'.join([
         config_name,

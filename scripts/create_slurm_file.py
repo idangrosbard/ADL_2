@@ -87,7 +87,7 @@ def create_template(
     experiment_name = construct_experiment_name(
         args.config_name,
         model_name=get_model_name_from_config(args.config),
-        is_ref=args.config['training']['is_ref']
+        with_ref=args.config['training']['with_ref']
     )
     args = args._replace(run_id=create_run_id(args.run_id))
 

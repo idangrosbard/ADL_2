@@ -41,8 +41,14 @@ class FORMATS:
     LOGGER_FORMAT = '%(asctime)s - %(message)s'
 
 
+class ENV_VARS:
+    BASE_CONFIG = 'BASE_CONFIG'
+    MASTER_PORT = 'MASTER_PORT'
+    MASTER_ADDR = 'MASTER_ADDR'
+
+
 class DDP:
-    MASTER_PORT = os.environ.get('MASTER_PORT', '12355')
+    MASTER_PORT = os.environ.get(ENV_VARS.MASTER_PORT, '12355')
     MASTER_ADDR = 'localhost'
     BACKEND = 'nccl'
     SHUFFLE = True
@@ -71,3 +77,20 @@ STEP_TIMINGS_TO_LR_SCHEDULER = {
     STEP_TIMING.EPOCH: [LR_SCHEDULER.STEP],
     STEP_TIMING.EVALUATION: [],
 }
+
+
+class TEXTS:
+    CHECKPOINT_SAVED = lambda path: f"Checkpoint saved at {path}"
+    CHECKPOINT_LOADED = "Checkpoint loaded"
+    TRAINING_STARTS = lambda relative_path: f"Training starts, for experiment: {relative_path}"
+    TRAINING_ENDS = "Training ends"
+    TOTAL_PARAMS = lambda count: f'Total params: {count}'
+    EPOCH_INFO = lambda epoch, total_epochs, batch, total_batches, total_steps, loss: ', '.join([
+        f'Epoch [{epoch + 1}/{total_epochs}]',
+        f'Batch [{batch + 1}/{total_batches}]',
+        f'Total Steps: {total_steps}',
+        f'Loss: {loss:.4f}'
+    ])
+    TEST_METRICS = lambda metrics: f'Test Metrics: {metrics}'
+    EARLY_STOPPING = "Early stopping triggered"
+    EPOCH_TIME = lambda epoch, time: f'Epoch {epoch + 1} took {time:.2f} seconds'

@@ -27,9 +27,11 @@ from src.config_types import TrainingConfig
 from src.config_types import get_sub_config
 from src.consts import C_STEPS
 from src.consts import DDP
+from src.consts import ENV_VARS
 from src.consts import FORMATS
 from src.consts import PATHS
 from src.consts import STEP_TIMINGS_TO_LR_SCHEDULER
+from src.consts import TEXTS
 from src.datasets.base_diffusion_dataset import DiffusionDatasetFactory
 from src.datasets.fashionMNIST import FashionMNISTDatasetFactory
 from src.models.abstract_diffusion_model import AbstractDiffusionModel
@@ -60,8 +62,8 @@ from src.utils.seed import set_seed
 
 
 def setup(rank: int, world_size: int) -> None:
-    os.environ['MASTER_ADDR'] = DDP.MASTER_ADDR
-    os.environ['MASTER_PORT'] = DDP.MASTER_PORT
+    os.environ[ENV_VARS.MASTER_ADDR] = DDP.MASTER_ADDR
+    os.environ[ENV_VARS.MASTER_PORT] = DDP.MASTER_PORT
     dist.init_process_group(DDP.BACKEND, rank=rank, world_size=world_size)
 
 
@@ -102,7 +104,7 @@ class Trainer:
         prefix = construct_experiment_name(
             self.config_name,
             self.model_name,
-            self.training_config['is_ref']
+            self.training_config['with_ref']
         )
         return f"{prefix}/{self._run_id}"
 
@@ -142,7 +144,7 @@ class Trainer:
         )
         torch.save(checkpoint, path)
 
-        self.logger.info(f"Checkpoint saved at {path}")
+        self.logger.info(TEXTS.CHECKPOINT_SAVED(path))
 
     def load_checkpoint(self, device: torch.device) -> Optional[Checkpoint]:
         if (checkpoint_path := self.get_latest_chkpt()) is not None:
@@ -310,7 +312,7 @@ class Trainer:
 
     def _init_diffusion_model(self) -> AbstractDiffusionModel:
         if self.model_name == MODEL.DDPM:
-            model = RefDDPMModel if self.training_config['is_ref'] else DDPMModel
+            model = RefDDPMModel if self.training_config['with_ref'] else DDPMModel
             return model(
                 config=get_sub_config(self._config, get_config_key_by_arch(self.model_name)),
                 dataset_config=self.dataset_config,
@@ -331,7 +333,8 @@ class Trainer:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.configure_logging()
 
-        writer = SummaryWriter(log_dir=str(PATHS.TENSORBOARD_DIR / self.relative_path)) if self.is_master_process else None
+        writer = SummaryWriter(
+            log_dir=str(PATHS.TENSORBOARD_DIR / self.relative_path)) if self.is_master_process else None
         diffusion_model = self._init_diffusion_model()
 
         checkpoint = self.load_checkpoint(device)
@@ -343,7 +346,7 @@ class Trainer:
         lr_scheduler = self.get_lr_scheduler(optimizer)
 
         start_epoch = 0
-        self.logger.info(f"Training starts, for experiment: {self.relative_path}")
+        self.logger.info(TEXTS.TRAINING_STARTS(self.relative_path))
 
         if checkpoint is not None:
             diffusion_model.load_state_dict(checkpoint['model_state_dict'])
@@ -357,9 +360,9 @@ class Trainer:
             start_epoch = checkpoint['epoch']
             self.total_steps = checkpoint['total_steps']
             self.best_loss = checkpoint['best_loss']
-            self.logger.info(f"Checkpoint loaded")
+            self.logger.info(TEXTS.CHECKPOINT_LOADED)
 
-        self.logger.info(f'Total params: {humanize.intcomma(diffusion_model.count_params())}')
+        self.logger.info(TEXTS.TOTAL_PARAMS(humanize.intcomma(diffusion_model.count_params())))
 
         metrics = self._train(
             diffusion_model=diffusion_model,
@@ -415,12 +418,9 @@ class Trainer:
                 )
 
                 if not self.should_print_to_screen:
-                    self.logger.info(', '.join([
-                        f'Epoch [{epoch + 1}/{self.training_config["epochs"]}]',
-                        f'Batch [{batch + 1}/{total_batches}]',
-                        f'Total Steps: {self.total_steps}',
-                        f'Loss: {loss:.4f}'
-                    ]))
+                    self.logger.info(TEXTS.EPOCH_INFO(
+                        epoch, self.training_config['epochs'], batch, total_batches, self.total_steps, loss
+                    ))
 
     def _log_eval_metrics(self, metrics: IMetrics, writer: SummaryWriter):
         if self.is_master_process:
@@ -431,7 +431,7 @@ class Trainer:
                     self.total_steps,
                 )
 
-            self.logger.info(f'Test Metrics: {metrics}')
+                self.logger.info(TEXTS.TEST_METRICS(metrics))
 
     def _sampling_step(
             self,
@@ -468,7 +468,7 @@ class Trainer:
                 if loss > self.best_loss:
                     self.early_stopping_counter += 1
                     if self.early_stopping_counter >= early_stopping_patience:
-                        self.logger.info("Early stopping triggered")
+                        self.logger.info(TEXTS.EARLY_STOPPING)
                         return True
                 else:
                     self.early_stopping_counter = 0
@@ -479,7 +479,7 @@ class Trainer:
             reduced_metrics = torch.tensor(list(metrics.values())).to(device)
             dist.reduce(
                 reduced_metrics,
-                dst=(int(os.environ.get('MASTER_PORT', 0)) % self.world_size),
+                dst=(int(DDP.MASTER_PORT) % self.world_size),
                 op=dist.ReduceOp.SUM
             )
             if self.is_master_process:
@@ -519,7 +519,7 @@ class Trainer:
                 epoch=epoch,
                 samplers=samplers
             )
-            self.logger.info(f'Epoch {epoch + 1} took {time.time() - start_time:.2f} seconds')
+            self.logger.info(TEXTS.EPOCH_TIME(epoch, time.time() - start_time))
             if early_stopped:
                 break
             self._lr_scheduler_step(lr_scheduler, STEP_TIMING.EPOCH, writer)

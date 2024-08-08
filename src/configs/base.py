@@ -11,7 +11,7 @@ from src.types import SAMPLERS
 from src.types import T_SAMPLER
 from src.types import TimeStep
 
-config = Config(
+base_config = Config(
     ddpm=DDPMConfig(
         unet=UNetConfig(
             depth=4,
@@ -20,7 +20,7 @@ config = Config(
             init_width=64,
             width_expansion_factor=2,
             n_convs=1,
-            kernel_size=2,
+            kernel_size=3,
             resblock=True,
             stride=1,
             padding=1,
@@ -48,7 +48,7 @@ config = Config(
         batch_size=64,
         epochs=10,
         seed=42,
-        gradient_clip_value=True,
+        gradient_clip_value=None,
         optimizer_type=OPTIMIZER.ADAMW,
         optimizer_params={
             'lr': 1e-4,
@@ -59,6 +59,6 @@ config = Config(
         },
         early_stopping=True,
         early_stopping_patience=3,
-        is_ref=False,
+        with_ref=True,
     ),
 )

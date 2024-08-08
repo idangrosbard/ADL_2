@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import NamedTuple
@@ -7,13 +6,10 @@ from typing import Optional
 from typing import TYPE_CHECKING
 from typing import TypedDict
 
+from src.utils.types_utils import STREnum
+
 if TYPE_CHECKING:
     from src.config_types import Config
-
-
-class STREnum(str, Enum):
-    def __str__(self) -> str:
-        return str(self.value)
 
 
 class SPLIT(STREnum):

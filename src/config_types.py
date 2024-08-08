@@ -62,7 +62,7 @@ class TrainingConfig(TypedDict):
     lr_scheduler_params: Dict[str, Any]
     early_stopping: bool
     early_stopping_patience: int
-    is_ref:bool
+    with_ref: bool
 
 
 class Config(TypedDict):
