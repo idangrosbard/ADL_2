@@ -14,3 +14,5 @@ checkpoints/
 logs/
 .idea
 debug/
+venv/
+runs2/
